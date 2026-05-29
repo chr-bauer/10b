@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz: Der EU-Binnenmarkt</title>
+<style>
+  :root {
+    --eu-blue: #003399;
+    --eu-blue-dark: #001f66;
+    --eu-blue-mid: #0044cc;
+    --eu-gold: #FFCC00;
+    --white: #ffffff;
+    --light-bg: #f0f4ff;
+    --text-dark: #0a1a3a;
+    --correct: #1a7a3a;
+    --correct-bg: #d4f0de;
+    --wrong: #9b1b1b;
+    --wrong-bg: #fde0e0;
+    --neutral-bg: #e8eef8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--eu-blue-dark);
+    color: var(--text-dark);
+    min-height: 100vh;
+  }
+
+  .stars {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .star {
+    position: absolute;
+    color: var(--eu-gold);
+    opacity: 0.12;
+    animation: twinkle 4s ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.08; }
+    50% { opacity: 0.25; }
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+  }
+
+  .eu-stars-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.35rem;
+    font-size: 1.2rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .eu-stars-row span { color: var(--eu-gold); }
+
+  .badge {
+    display: inline-block;
+    background: var(--eu-gold);
+    color: var(--eu-blue-dark);
+    font-weight: 700;
+    font-size: 0.68rem;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 0.3rem 0.9rem;
+    border-radius: 2px;
+    margin-bottom: 0.9rem;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.5px;
+  }
+
+  h1 span { color: var(--eu-gold); }
+
+  .subtitle {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.95rem;
+  }
+
+  .progress-wrap {
+    position: relative;
+    z-index: 10;
+    max-width: 660px;
+    margin: 0 auto 1.2rem;
+    padding: 0 1.2rem;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--eu-gold);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .quiz-container {
+    position: relative;
+    z-index: 10;
+    max-width: 660px;
+    margin: 0 auto 2rem;
+    padding: 0 1.2rem;
+  }
+
+  .card {
+    background: var(--white);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.15);
+    animation: cardIn 0.35s ease;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    background: var(--eu-blue);
+    padding: 1.4rem 1.8rem 1.2rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .q-number {
+    flex-shrink: 0;
+    width: 2.2rem;
+    height: 2.2rem;
+    background: var(--eu-gold);
+    color: var(--eu-blue-dark);
+    font-weight: 900;
+    font-size: 1rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .q-text {
+    color: var(--white);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.45;
+    padding-top: 0.3rem;
+  }
+
+  .card-body {
+    padding: 1.4rem 1.8rem 1.8rem;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .option-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.8rem 1rem;
+    border: 2px solid var(--neutral-bg);
+    border-radius: 9px;
+    background: var(--neutral-bg);
+    color: var(--text-dark);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    line-height: 1.35;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--eu-blue);
+    background: #dce6ff;
+    transform: translateX(3px);
+  }
+
+  .opt-letter {
+    flex-shrink: 0;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: rgba(0,51,153,0.1);
+    color: var(--eu-blue);
+    font-weight: 700;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .option-btn:hover:not(:disabled) .opt-letter {
+    background: var(--eu-blue);
+    color: white;
+  }
+
+  .option-btn.correct {
+    border-color: var(--correct);
+    background: var(--correct-bg);
+    color: var(--correct);
+    font-weight: 600;
+    transform: none;
+  }
+
+  .option-btn.correct .opt-letter {
+    background: var(--correct);
+    color: white;
+  }
+
+  .option-btn.wrong {
+    border-color: var(--wrong);
+    background: var(--wrong-bg);
+    color: var(--wrong);
+    transform: none;
+  }
+
+  .option-btn.wrong .opt-letter {
+    background: var(--wrong);
+    color: white;
+  }
+
+  .option-btn:disabled { cursor: default; }
+
+  .feedback {
+    margin-top: 1.1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 9px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    display: none;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .feedback.show { display: flex; animation: fadeUp 0.25s ease; }
+
+  .feedback.fb-correct {
+    background: var(--correct-bg);
+    color: var(--correct);
+    border-left: 4px solid var(--correct);
+  }
+
+  .feedback.fb-wrong {
+    background: var(--wrong-bg);
+    color: var(--wrong);
+    border-left: 4px solid var(--wrong);
+  }
+
+  .feedback-icon { flex-shrink: 0; font-weight: 700; font-size: 1rem; margin-top: 1px; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .btn-next {
+    margin-top: 1.2rem;
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--eu-blue);
+    color: var(--eu-gold);
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 0.97rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: background 0.15s, transform 0.12s;
+  }
+
+  .btn-next:hover { background: var(--eu-blue-mid); transform: translateY(-1px); }
+  .btn-next.show { display: flex; animation: fadeUp 0.25s ease 0.1s both; }
+
+  /* Result */
+  .result-card {
+    background: var(--white);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+    display: none;
+    animation: cardIn 0.4s ease;
+  }
+
+  .result-card.show { display: block; }
+
+  .result-header {
+    background: var(--eu-blue);
+    padding: 2.2rem 2rem;
+    text-align: center;
+  }
+
+  .result-stars-row {
+    font-size: 1.5rem;
+    letter-spacing: 4px;
+    margin-bottom: 0.8rem;
+    color: var(--eu-gold);
+  }
+
+  .result-title {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--white);
+    margin-bottom: 0.3rem;
+  }
+
+  .result-score {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: var(--eu-gold);
+    line-height: 1;
+    margin: 0.8rem 0 0.2rem;
+  }
+
+  .result-label {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .result-body {
+    padding: 1.8rem;
+    text-align: center;
+  }
+
+  .result-message {
+    font-size: 1rem;
+    color: var(--text-dark);
+    margin-bottom: 1.3rem;
+    line-height: 1.6;
+  }
+
+  .score-bar-wrap {
+    background: var(--neutral-bg);
+    border-radius: 8px;
+    height: 8px;
+    margin-bottom: 1.8rem;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--eu-blue), var(--eu-gold));
+    border-radius: 8px;
+    transition: width 1s ease 0.3s;
+    width: 0%;
+  }
+
+  .btn-restart {
+    padding: 0.9rem 2.2rem;
+    background: var(--eu-blue);
+    color: var(--eu-gold);
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 0.97rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.12s;
+  }
+
+  .btn-restart:hover { background: var(--eu-blue-mid); transform: translateY(-1px); }
+
+  .answer-review {
+    text-align: left;
+    margin-top: 1.5rem;
+    border-top: 2px solid var(--neutral-bg);
+    padding-top: 1.4rem;
+  }
+
+  .review-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--eu-blue);
+    margin-bottom: 0.9rem;
+    letter-spacing: 0.3px;
+  }
+
+  .review-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin-bottom: 0.55rem;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    padding: 0.55rem 0.75rem;
+    border-radius: 7px;
+  }
+
+  .review-item.r-correct { background: var(--correct-bg); color: var(--correct); }
+  .review-item.r-wrong   { background: var(--wrong-bg);   color: var(--wrong); }
+  .review-icon { flex-shrink: 0; font-weight: 700; }
+  .review-q { font-weight: 700; }
+
+  footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 0.5rem 1rem 1.8rem;
+    color: rgba(255,255,255,0.25);
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+  }
+
+  @media (max-width: 480px) {
+    .card-header { padding: 1.1rem 1.2rem 1rem; }
+    .card-body   { padding: 1rem 1.2rem 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="starsEl"></div>
+
+<header>
+  <div class="eu-stars-row">
+    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+    <span>★</span><span>★</span>
+  </div>
+  <div class="badge">Europäische Union · Wissenstest</div>
+  <h1>Der <span>EU-Binnenmarkt</span></h1>
+  <p class="subtitle">10 Fragen zu den vier Freiheiten &amp; ihrer Bedeutung</p>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-info">
+    <span id="progressText">Frage 1 von 10</span>
+    <span id="scoreText">0 richtig</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<div class="quiz-container">
+
+  <div class="card" id="quizCard">
+    <div class="card-header">
+      <div class="q-number" id="qNumber">1</div>
+      <div class="q-text" id="qText"></div>
+    </div>
+    <div class="card-body">
+      <div class="options" id="optionsContainer"></div>
+      <div class="feedback" id="feedback">
+        <span class="feedback-icon" id="feedbackIcon"></span>
+        <span id="feedbackText"></span>
+      </div>
+      <button class="btn-next" id="btnNext">Weiter &#8594;</button>
+    </div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="result-stars-row">&#9733; &#9733; &#9733; &#9733; &#9733;</div>
+      <div class="result-title">Quiz abgeschlossen!</div>
+      <div class="result-score" id="finalScore">0/10</div>
+      <div class="result-label">Richtige Antworten</div>
+    </div>
+    <div class="result-body">
+      <p class="result-message" id="resultMessage"></p>
+      <div class="score-bar-wrap">
+        <div class="score-bar-fill" id="scoreBarFill"></div>
+      </div>
+      <button class="btn-restart" id="btnRestart">&#8635; Quiz neu starten</button>
+      <div class="answer-review">
+        <div class="review-title">Deine Antworten im Überblick</div>
+        <div id="reviewList"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Inhalte basieren auf Schulbuchmaterial &middot; Mensch &amp; Politik 9/10</footer>
+
+<script>
+(function() {
+  var questions = [
+    {
+      q: "Wie viele Verbraucherinnen und Verbraucher umfasst der EU-Binnenmarkt?",
+      options: ["rund 250 Millionen", "rund 350 Millionen", "über 500 Millionen", "über 750 Millionen"],
+      correct: 2,
+      explanation: "Der EU-Binnenmarkt umfasst über 500 Millionen europäische Verbraucherinnen und Verbraucher."
+    },
+    {
+      q: "Welche der folgenden gehört NICHT zu den vier Freiheiten des EU-Binnenmarkts?",
+      options: ["Freier Personenverkehr", "Freier Warenverkehr", "Freier Informationsverkehr", "Freier Kapitalverkehr"],
+      correct: 2,
+      explanation: "Die vier Freiheiten sind: Freier Personen-, Waren-, Dienstleistungs- und Kapitalverkehr. Einen freien Informationsverkehr gibt es nicht."
+    },
+    {
+      q: "Was beinhaltet der freie Personenverkehr im Binnenmarkt?",
+      options: [
+        "Geld kann EU-weit ungehindert investiert werden",
+        "Dienstleistungen können EU-weit angeboten werden",
+        "Niederlassungs- und Beschäftigungsfreiheit für EU-Bürgerinnen und -Bürger",
+        "Wegfall der Grenzkontrollen für Waren"
+      ],
+      correct: 2,
+      explanation: "Zum freien Personenverkehr gehört u. a. die Niederlassungs- und Beschäftigungsfreiheit sowie die gegenseitige Anerkennung von Diplomen und Prüfungszeugnissen."
+    },
+    {
+      q: "Was war VOR der Einführung des Binnenmarkts (1993) für Studieren oder Arbeiten im EU-Ausland in der Regel erforderlich?",
+      options: [
+        "Nur ein gültiger Reisepass",
+        "Eine Aufenthaltsgenehmigung",
+        "Eine kostenpflichtige Zollgebühr",
+        "Ein europäischer Führerschein"
+      ],
+      correct: 1,
+      explanation: "Wer im Ausland studieren oder arbeiten wollte, brauchte in der Regel eine Aufenthaltsgenehmigung. Grenzüberschreitende Dienstleistungen mussten komplizierte Genehmigungsverfahren durchlaufen."
+    },
+    {
+      q: "Wie hat sich der Absatzmarkt für deutsche Waren durch den Binnenmarkt verändert?",
+      options: [
+        "Von 1,5 auf 8 Billionen Euro",
+        "Von 2,8 auf 14,2 Billionen Euro",
+        "Von 5 auf 20 Billionen Euro",
+        "Von 3,5 auf 10 Billionen Euro"
+      ],
+      correct: 1,
+      explanation: "Laut Studien der KfW hat sich der Absatzmarkt für deutsche Waren von 2,8 Billionen Euro (national) auf einen europäischen Markt mit einem Volumen von 14,2 Billionen Euro vervielfacht."
+    },
+    {
+      q: "Wie viel Prozent seiner Geschäfte macht Sortimo International im EU-Binnenmarkt?",
+      options: ["über 50 Prozent", "etwa 65 Prozent", "über 80 Prozent", "nahezu 100 Prozent"],
+      correct: 2,
+      explanation: "Geschäftsführer Reinhold Braun erklärt: Der europäische Binnenmarkt ist der Anker der Firma, weil über 80 Prozent der Geschäfte im Binnenmarkt gemacht werden."
+    },
+    {
+      q: "Um wie viel Milliarden Euro würde die jährliche Wertschöpfung Deutschlands ohne den Binnenmarkt sinken?",
+      options: ["rund 50 Milliarden", "rund 80 Milliarden", "rund 130 Milliarden", "rund 200 Milliarden"],
+      correct: 2,
+      explanation: "Gabriel Felbermayr errechnete: Allein für Deutschland hängen jedes Jahr rund 130 Milliarden Euro zusätzliche Wertschöpfung am Binnenmarkt, die dann wegfiele."
+    },
+    {
+      q: "Um wie viel Prozent würde das deutsche Bruttoinlandsprodukt ohne den Binnenmarkt schrumpfen?",
+      options: ["etwa 1 Prozent", "etwa 2 Prozent", "etwa 4 Prozent", "etwa 10 Prozent"],
+      correct: 2,
+      explanation: "Das deutsche Bruttoinlandsprodukt würde um etwa vier Prozent schrumpfen und Jobs sowie das heutige Einkommensniveau wären strukturell gefährdet."
+    },
+    {
+      q: "Was schlägt Ökonom Gabriel Felbermayr zur Verbesserung des Binnenmarkts vor?",
+      options: [
+        "Einführung einer gemeinsamen EU-Steuer",
+        "Bessere Abstimmung der sozialen Sicherungssysteme",
+        "Abschaffung des freien Kapitalverkehrs",
+        "Rückabwicklung des Binnenmarkts"
+      ],
+      correct: 1,
+      explanation: "Felbermayr schlägt vor, die sozialen Sicherungssysteme besser aufeinander abzustimmen und bestimmte Sozialleistungen erst ab fünf oder sieben Jahren Aufenthaltsdauer zu gewähren."
+    },
+    {
+      q: "Was beinhaltet der freie Kapitalverkehr im Binnenmarkt?",
+      options: [
+        "Öffnung der Transport- und Telekommunikationsmärkte",
+        "Schaffung von Vergleichbarkeit bei Normen und Vorschriften für Waren",
+        "Angleichung der Mehrwert- und Verbrauchssteuern",
+        "Geld kann EU-weit ungehindert investiert und angelegt werden"
+      ],
+      correct: 3,
+      explanation: "Beim freien Kapitalverkehr kann Geld EU-weit ungehindert investiert und angelegt werden, es gibt keine Beschränkung im Zahlungsverkehr und der Wertpapierverkehr ist liberalisiert."
+    }
+  ];
+
+  var current = 0;
+  var score = 0;
+  var answered = false;
+  var userAnswers = [];
+
+  var letters = ['A','B','C','D'];
+
+  function renderQuestion() {
+    answered = false;
+    var q = questions[current];
+
+    document.getElementById('qNumber').textContent = current + 1;
+    document.getElementById('qText').textContent = q.q;
+
+    var container = document.getElementById('optionsContainer');
+    container.innerHTML = '';
+
+    for (var i = 0; i < q.options.length; i++) {
+      (function(idx) {
+        var btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML =
+          '<span class="opt-letter">' + letters[idx] + '</span>' +
+          '<span>' + q.options[idx] + '</span>';
+        btn.addEventListener('click', function() { selectAnswer(idx); });
+        container.appendChild(btn);
+      })(i);
+    }
+
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('btnNext').className = 'btn-next';
+    updateProgress();
+  }
+
+  function selectAnswer(idx) {
+    if (answered) return;
+    answered = true;
+
+    var q = questions[current];
+    var buttons = document.querySelectorAll('.option-btn');
+    for (var i = 0; i < buttons.length; i++) { buttons[i].disabled = true; }
+
+    var isCorrect = (idx === q.correct);
+    buttons[idx].classList.add(isCorrect ? 'correct' : 'wrong');
+    if (!isCorrect) { buttons[q.correct].classList.add('correct'); }
+
+    if (isCorrect) { score++; }
+    userAnswers.push({ qIndex: current, chosen: idx, correct: isCorrect });
+
+    var fb = document.getElementById('feedback');
+    var icon = document.getElementById('feedbackIcon');
+    var text = document.getElementById('feedbackText');
+
+    if (isCorrect) {
+      fb.className = 'feedback fb-correct show';
+      icon.textContent = '✓';
+      text.textContent = 'Richtig! ' + q.explanation;
+    } else {
+      fb.className = 'feedback fb-wrong show';
+      icon.textContent = '✗';
+      text.innerHTML = 'Leider falsch. <strong>Richtig: ' + q.options[q.correct] + '</strong> — ' + q.explanation;
+    }
+
+    document.getElementById('btnNext').className = 'btn-next show';
+    document.getElementById('scoreText').textContent = score + ' richtig';
+  }
+
+  function nextQuestion() {
+    current++;
+    if (current < questions.length) {
+      var card = document.getElementById('quizCard');
+      card.style.animation = 'none';
+      card.offsetHeight; // reflow
+      card.style.animation = '';
+      renderQuestion();
+    } else {
+      showResult();
+    }
+  }
+
+  function updateProgress() {
+    document.getElementById('progressText').textContent = 'Frage ' + (current + 1) + ' von ' + questions.length;
+    document.getElementById('progressFill').style.width = ((current / questions.length) * 100) + '%';
+  }
+
+  function showResult() {
+    document.getElementById('quizCard').style.display = 'none';
+    document.querySelector('.progress-wrap').style.display = 'none';
+
+    var pct = score / questions.length;
+    var msg = '';
+    if (pct === 1)       msg = 'Perfekt! Du kennst den EU-Binnenmarkt in- und auswendig. Ausgezeichnet!';
+    else if (pct >= 0.8) msg = 'Sehr gut! Du hast ein starkes Verständnis des EU-Binnenmarkts.';
+    else if (pct >= 0.6) msg = 'Gut gemacht! Die wichtigsten Fakten sitzen – ein paar Details kannst du noch vertiefen.';
+    else if (pct >= 0.4) msg = 'Nicht schlecht – aber der Binnenmarkt hat noch mehr zu bieten! Lies die Texte nochmal durch.';
+    else                 msg = 'Noch Luft nach oben! Schau dir die Materialien nochmal an und versuche es erneut.';
+
+    document.getElementById('finalScore').textContent = score + '/10';
+    document.getElementById('resultMessage').textContent = msg;
+
+    var resultCard = document.getElementById('resultCard');
+    resultCard.className = 'result-card show';
+
+    setTimeout(function() {
+      document.getElementById('scoreBarFill').style.width = (pct * 100) + '%';
+    }, 100);
+
+    var reviewList = document.getElementById('reviewList');
+    reviewList.innerHTML = '';
+    for (var i = 0; i < userAnswers.length; i++) {
+      var a = userAnswers[i];
+      var q = questions[a.qIndex];
+      var div = document.createElement('div');
+      div.className = 'review-item ' + (a.correct ? 'r-correct' : 'r-wrong');
+      var qShort = q.q.length > 55 ? q.q.substring(0, 55) + '…' : q.q;
+      div.innerHTML =
+        '<span class="review-icon">' + (a.correct ? '✓' : '✗') + '</span>' +
+        '<span><span class="review-q">F' + (a.qIndex + 1) + ':</span> ' + qShort + '</span>';
+      reviewList.appendChild(div);
+    }
+  }
+
+  function restartQuiz() {
+    current = 0; score = 0; userAnswers = [];
+    document.getElementById('scoreText').textContent = '0 richtig';
+    document.getElementById('quizCard').style.display = '';
+    document.querySelector('.progress-wrap').style.display = '';
+    document.getElementById('resultCard').className = 'result-card';
+    document.getElementById('scoreBarFill').style.width = '0%';
+    renderQuestion();
+  }
+
+  // Background stars
+  var starsEl = document.getElementById('starsEl');
+  for (var s = 0; s < 28; s++) {
+    var star = document.createElement('div');
+    star.className = 'star';
+    star.textContent = '★';
+    star.style.left = (Math.random() * 100) + '%';
+    star.style.top  = (Math.random() * 100) + '%';
+    star.style.animationDelay = (Math.random() * 4) + 's';
+    star.style.fontSize = (0.6 + Math.random() * 0.7) + 'rem';
+    starsEl.appendChild(star);
+  }
+
+  // Wire up buttons
+  document.getElementById('btnNext').addEventListener('click', nextQuestion);
+  document.getElementById('btnRestart').addEventListener('click', restartQuiz);
+
+  renderQuestion();
+})();
+</script>
+</body>
+</html>

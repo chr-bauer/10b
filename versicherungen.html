@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Versicherungen einordnen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --pflicht: #1a5c9c;
+    --pflicht-light: #e6f0fa;
+    --pflicht-mid: #4a8fd4;
+    --sinnvoll: #2a7a52;
+    --sinnvoll-light: #e4f4ec;
+    --sinnvoll-mid: #4eb87e;
+    --nein: #9c3030;
+    --nein-light: #faeaea;
+    --nein-mid: #d46060;
+    --neutral: #5a5a6e;
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --text: #1a1a2e;
+    --text-muted: #7a7a8e;
+    --border: rgba(0,0,0,0.08);
+    --radius: 14px;
+    --card-radius: 10px;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── Layout ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  #add-form {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    max-width: 420px;
+  }
+
+  #add-form input {
+    flex: 1;
+    padding: 9px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--card-radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+  }
+  #add-form input:focus { border-color: var(--pflicht-mid); }
+  #add-form input::placeholder { color: var(--text-muted); }
+
+  #add-form button {
+    padding: 9px 18px;
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: var(--card-radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    white-space: nowrap;
+  }
+  #add-form button:active { transform: scale(0.97); opacity: .85; }
+
+  #btn-reset {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: var(--card-radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color .2s, color .2s;
+  }
+  #btn-reset:hover { border-color: var(--nein-mid); color: var(--nein); }
+
+  /* ── Main area ── */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px 20px 12px;
+    gap: 14px;
+  }
+
+  /* ── Axis track ── */
+  #axis-wrap {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px 20px 16px;
+    position: relative;
+  }
+
+  #axis-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .axis-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .axis-label.left { color: var(--pflicht); }
+  .axis-label.mid  { color: var(--sinnvoll); }
+  .axis-label.right { color: var(--nein); }
+
+  #axis-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--pflicht-mid), var(--sinnvoll-mid), var(--nein-mid));
+    position: relative;
+    margin-bottom: 14px;
+  }
+
+  /* ── Drop zone on axis ── */
+  #drop-axis {
+    min-height: 90px;
+    position: relative;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 6px 4px 4px;
+    gap: 0;
+  }
+
+  /* ── Placed cards on axis ── */
+  .placed-card {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    cursor: grab;
+    touch-action: none;
+    z-index: 10;
+    transition: box-shadow .15s;
+  }
+  .placed-card:active { cursor: grabbing; z-index: 100; }
+
+  .placed-card .chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    user-select: none;
+    position: relative;
+  }
+
+  .placed-card .chip .del-btn {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.15);
+    border: none;
+    color: inherit;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .2s;
+    flex-shrink: 0;
+  }
+  .placed-card:hover .del-btn { opacity: 1; }
+
+  .zone-pflicht .chip { background: var(--pflicht-light); color: var(--pflicht); border-color: #b8d4f0; }
+  .zone-sozial  .chip { background: #e8f0fc; color: #1a3a8c; border-color: #b8ccf4; }
+  .zone-sinnvoll .chip { background: var(--sinnvoll-light); color: var(--sinnvoll); border-color: #b0ddc4; }
+  .zone-nein    .chip { background: var(--nein-light); color: var(--nein); border-color: #f0bbbb; }
+
+  .chip-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .zone-pflicht .chip-dot { background: var(--pflicht); }
+  .zone-sozial  .chip-dot { background: #1a3a8c; }
+  .zone-sinnvoll .chip-dot { background: var(--sinnvoll); }
+  .zone-nein    .chip-dot { background: var(--nein); }
+
+  /* ── Pool area ── */
+  #pool-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #pool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #pool-header h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+  }
+
+  #pool-count {
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 10px;
+    color: var(--text-muted);
+  }
+
+  #pool {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 8px;
+    padding: 14px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1.5px dashed var(--border);
+  }
+
+  #pool.drag-over {
+    border-color: var(--pflicht-mid);
+    background: var(--pflicht-light);
+  }
+
+  .pool-card {
+    padding: 8px 16px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    transition: background .15s, transform .1s, box-shadow .15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pool-card:active { cursor: grabbing; transform: scale(1.04); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+  .pool-card:hover { background: #eceae4; }
+
+  .pool-empty {
+    width: 100%;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 20px;
+    font-style: italic;
+  }
+
+  /* ── Axis position marker line ── */
+  #axis-drop-zone {
+    position: relative;
+    height: 110px;
+    border: 2px dashed transparent;
+    border-radius: 8px;
+    transition: border-color .2s, background .2s;
+  }
+  #axis-drop-zone.drag-over {
+    border-color: rgba(0,0,0,.12);
+    background: rgba(0,0,0,.02);
+  }
+
+  /* ── Tooltip hint ── */
+  #hint {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* ── Legend ── */
+  #legend {
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Dragging ghost ── */
+  #drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: .85;
+    transform: rotate(-2deg) scale(1.05);
+    transition: none;
+    display: none;
+  }
+  #drag-ghost .chip, #drag-ghost.pool-style {
+    padding: 8px 16px;
+    background: var(--text);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* scrollbar subtle */
+  #pool::-webkit-scrollbar { width: 4px; }
+  #pool::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>Versicherungen einordnen</h1>
+    <div id="add-form">
+      <input type="text" id="new-name" placeholder="Versicherung eingeben …" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button onclick="addCard()">+ Hinzufügen</button>
+    </div>
+    <button id="btn-reset" onclick="resetAll()">Zurücksetzen</button>
+  </header>
+
+  <main>
+
+    <!-- AXIS -->
+    <div id="axis-wrap">
+      <div id="axis-labels">
+        <span class="axis-label left">⬛ Pflicht</span>
+        <span class="axis-label mid">Sinnvoll</span>
+        <span class="axis-label right">Nicht notwendig ⬛</span>
+      </div>
+      <div id="axis-bar"></div>
+
+      <div id="axis-drop-zone">
+        <span id="hint">Versicherungskarten hierher ziehen</span>
+      </div>
+    </div>
+
+    <!-- POOL -->
+    <div id="pool-section">
+      <div id="pool-header">
+        <h2>Gesammelte Versicherungen</h2>
+        <span id="pool-count">0 Karten</span>
+      </div>
+      <div id="pool">
+        <span class="pool-empty">Noch keine Versicherungen hinzugefügt – tippe oben einen Namen ein.</span>
+      </div>
+    </div>
+
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pflicht)"></div>Gesetzliche Pflicht</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a3a8c"></div>Sozialversicherung</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--sinnvoll)"></div>Sinnvoll</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--nein)"></div>Nicht notwendig</div>
+    </div>
+
+  </main>
+</div>
+
+<div id="drag-ghost"></div>
+
+<script>
+const PRELOADED = [
+  "Krankenversicherung","Rentenversicherung","Pflegeversicherung",
+  "Arbeitslosenversicherung","Unfallversicherung (ges.)","KFZ-Haftpflicht",
+  "Private Haftpflicht","Berufsunfähigkeit","Hausrat","Zahnzusatz",
+  "Rechtsschutz","Risikoleben","Gebäudeversicherung",
+  "Tierhalterhaftpflicht","Private Pflegevorsorge",
+  "Handyversicherung","Brillenversicherung","Reisegepäck",
+  "Sterbegeld","Tierkrankenversicherung"
+];
+
+let cards = {}; // id -> {name, placed: bool, pct: number|null, zone: string|null}
+let idCounter = 0;
+let dragState = null; // {id, fromPool, startX, startY, ghost}
+
+const pool = document.getElementById('pool');
+const dropZone = document.getElementById('axis-drop-zone');
+const ghost = document.getElementById('drag-ghost');
+const hintEl = document.getElementById('hint');
+
+function zoneFromPct(pct) {
+  if (pct < 20) return 'zone-pflicht';
+  if (pct < 42) return 'zone-sozial';
+  if (pct < 72) return 'zone-sinnvoll';
+  return 'zone-nein';
+}
+
+function addCard(name) {
+  name = (name || document.getElementById('new-name').value).trim();
+  if (!name) return;
+  const id = 'c' + (++idCounter);
+  cards[id] = { name, placed: false, pct: null, zone: null };
+  document.getElementById('new-name').value = '';
+  renderPool();
+}
+
+function resetAll() {
+  // move all placed cards back to pool
+  Object.keys(cards).forEach(id => {
+    cards[id].placed = false;
+    cards[id].pct = null;
+    cards[id].zone = null;
+  });
+  renderAxis();
+  renderPool();
+}
+
+// ── Render pool ──
+function renderPool() {
+  const unpaced = Object.entries(cards).filter(([,c]) => !c.placed);
+  pool.innerHTML = '';
+  if (unpaced.length === 0) {
+    pool.innerHTML = '<span class="pool-empty">Alle Versicherungen wurden eingeordnet!</span>';
+  } else {
+    unpaced.forEach(([id, c]) => {
+      const el = document.createElement('div');
+      el.className = 'pool-card';
+      el.dataset.id = id;
+      el.innerHTML = `<span>${c.name}</span>`;
+      el.addEventListener('touchstart', onTouchStart, {passive: false});
+      el.addEventListener('mousedown', onMouseDown);
+      pool.appendChild(el);
+    });
+  }
+  document.getElementById('pool-count').textContent = unpaced.length + ' Karten';
+}
+
+// ── Render axis cards ──
+function renderAxis() {
+  const dz = document.getElementById('axis-drop-zone');
+  // remove existing placed cards
+  dz.querySelectorAll('.placed-card').forEach(e => e.remove());
+
+  const placed = Object.entries(cards).filter(([,c]) => c.placed);
+  hintEl.style.display = placed.length === 0 ? 'block' : 'none';
+
+  placed.forEach(([id, c]) => {
+    const el = document.createElement('div');
+    el.className = 'placed-card ' + c.zone;
+    el.dataset.id = id;
+    el.style.left = c.pct + '%';
+
+    // stack vertically if overlapping
+    const row = getRow(c.pct, id, placed);
+    el.style.top = (4 + row * 36) + 'px';
+
+    el.innerHTML = `<div class="chip">
+      <div class="chip-dot"></div>
+      <span>${c.name}</span>
+      <button class="del-btn" title="Zurück in Pool" onclick="returnToPool('${id}')">✕</button>
+    </div>`;
+    el.addEventListener('touchstart', onTouchStart, {passive: false});
+    el.addEventListener('mousedown', onMouseDown);
+    dz.appendChild(el);
+  });
+}
+
+function getRow(pct, id, placed) {
+  // simple collision: check how many cards with close pct came before
+  const others = placed.filter(([oid]) => oid !== id);
+  let row = 0;
+  for (const [,oc] of others) {
+    if (Math.abs(oc.pct - pct) < 9) row++;
+    else if (row > 0) break;
+  }
+  return Math.min(row, 2);
+}
+
+function returnToPool(id) {
+  cards[id].placed = false;
+  cards[id].pct = null;
+  cards[id].zone = null;
+  renderAxis();
+  renderPool();
+}
+
+// ── Drag (touch) ──
+function onTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  startDrag(e.currentTarget, touch.clientX, touch.clientY);
+  document.addEventListener('touchmove', onTouchMove, {passive: false});
+  document.addEventListener('touchend', onTouchEnd);
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  moveDrag(touch.clientX, touch.clientY);
+}
+
+function onTouchEnd(e) {
+  const touch = e.changedTouches[0];
+  endDrag(touch.clientX, touch.clientY);
+  document.removeEventListener('touchmove', onTouchMove);
+  document.removeEventListener('touchend', onTouchEnd);
+}
+
+// ── Drag (mouse) ──
+function onMouseDown(e) {
+  if (e.button !== 0) return;
+  startDrag(e.currentTarget, e.clientX, e.clientY);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+
+function onMouseMove(e) { moveDrag(e.clientX, e.clientY); }
+function onMouseUp(e) {
+  endDrag(e.clientX, e.clientY);
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+}
+
+function startDrag(el, x, y) {
+  const id = el.dataset.id;
+  const card = cards[id];
+  const fromPool = !card.placed;
+
+  ghost.style.display = 'block';
+  ghost.innerHTML = `<div class="chip" style="background:var(--text);color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:nowrap;font-family:'DM Sans',sans-serif;">${card.name}</div>`;
+  ghost.style.left = (x - 60) + 'px';
+  ghost.style.top  = (y - 22) + 'px';
+
+  dragState = { id, fromPool, startX: x, startY: y };
+}
+
+function moveDrag(x, y) {
+  if (!dragState) return;
+  ghost.style.left = (x - 60) + 'px';
+  ghost.style.top  = (y - 22) + 'px';
+
+  const dzRect = dropZone.getBoundingClientRect();
+  const over = x >= dzRect.left && x <= dzRect.right && y >= dzRect.top && y <= dzRect.bottom;
+  dropZone.classList.toggle('drag-over', over);
+  pool.classList.toggle('drag-over', !over && !dragState.fromPool);
+}
+
+function endDrag(x, y) {
+  if (!dragState) return;
+  ghost.style.display = 'none';
+  dropZone.classList.remove('drag-over');
+  pool.classList.remove('drag-over');
+
+  const dzRect = dropZone.getBoundingClientRect();
+  const overAxis = x >= dzRect.left && x <= dzRect.right && y >= dzRect.top && y <= dzRect.bottom;
+
+  if (overAxis) {
+    // place on axis
+    let pct = ((x - dzRect.left) / dzRect.width) * 100;
+    pct = Math.max(1, Math.min(99, pct));
+    cards[dragState.id].placed = true;
+    cards[dragState.id].pct = pct;
+    cards[dragState.id].zone = zoneFromPct(pct);
+    renderAxis();
+    renderPool();
+  } else if (cards[dragState.id].placed) {
+    // dropped outside axis while it was placed → return to pool
+    const poolRect = pool.getBoundingClientRect();
+    const overPool = x >= poolRect.left && x <= poolRect.right && y >= poolRect.top && y <= poolRect.bottom;
+    if (overPool || true) {
+      // always allow dropping back to pool by releasing outside axis
+      returnToPool(dragState.id);
+    }
+  }
+
+  dragState = null;
+}
+
+// ── Init ──
+document.getElementById('new-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCard();
+});
+
+renderPool();
+</script>
+</body>
+</html>

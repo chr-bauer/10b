@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz: Binomialverteilung</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --accent: #6c63ff;
+    --accent-soft: rgba(108, 99, 255, 0.15);
+    --green: #22c55e;
+    --green-soft: rgba(34, 197, 94, 0.12);
+    --red: #ef4444;
+    --red-soft: rgba(239, 68, 68, 0.12);
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    max-width: 640px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .progress-bar-wrap {
+    width: 100%;
+    max-width: 640px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .card-wrapper {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .question-card.active { display: block; }
+
+  .q-number {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.8rem;
+  }
+
+  .q-type-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+
+  .q-text {
+    font-size: 1rem;
+    line-height: 1.65;
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+  }
+
+  .q-params {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    margin: 0.8rem 0 1.4rem;
+    display: inline-block;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .option-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .option-btn .letter {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+  }
+
+  .option-btn:hover:not(:disabled) .letter {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .option-btn.correct {
+    border-color: var(--green);
+    background: var(--green-soft);
+  }
+
+  .option-btn.correct .letter { background: var(--green); color: #fff; }
+
+  .option-btn.wrong {
+    border-color: var(--red);
+    background: var(--red-soft);
+  }
+
+  .option-btn.wrong .letter { background: var(--red); color: #fff; }
+
+  .option-btn:disabled { cursor: default; transform: none; }
+
+  .feedback {
+    margin-top: 1.2rem;
+    padding: 1rem 1.1rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    display: none;
+  }
+
+  .feedback.show { display: block; }
+  .feedback.correct-fb { background: var(--green-soft); border: 1px solid var(--green); color: #86efac; }
+  .feedback.wrong-fb { background: var(--red-soft); border: 1px solid var(--red); color: #fca5a5; }
+
+  .feedback strong { display: block; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.3rem; font-family: var(--mono); }
+
+  .nav-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.4rem;
+  }
+
+  .btn-next {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.7rem 1.4rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn-next:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-next.show { display: inline-block; }
+
+  /* Result screen */
+  #result-screen {
+    display: none;
+    width: 100%;
+    max-width: 640px;
+    text-align: center;
+  }
+
+  #result-screen.show { display: block; }
+
+  .score-ring {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) var(--pct), var(--border) 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    position: relative;
+  }
+
+  .score-ring::before {
+    content: '';
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: var(--surface);
+  }
+
+  .score-num {
+    font-family: var(--mono);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    position: relative;
+    z-index: 1;
+  }
+
+  .result-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  .result-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+
+  .review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    text-align: left;
+  }
+
+  .review-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .ri-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+  }
+
+  .ri-icon.ok { background: var(--green-soft); color: var(--green); }
+  .ri-icon.no { background: var(--red-soft); color: var(--red); }
+
+  .btn-restart {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.85rem 2rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-restart:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Mathematik · Jg. 12</div>
+  <h1>Binomialverteilung & kumulierte Wahrscheinlichkeit</h1>
+  <p class="subtitle">5 Aufgaben zu P(X ≤ k), P(X ≥ k), Bernoulli-Kette und Problemlösen</p>
+</header>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar" id="progress"></div>
+</div>
+
+<div class="card-wrapper" id="quiz-area">
+
+  <!-- Frage 1 -->
+  <div class="question-card active" data-index="0">
+    <div class="q-number">Frage 1 von 5</div>
+    <div class="q-type-badge">Kumulierte W'keit</div>
+    <div class="q-text">Eine Zufallsgröße X ist binomialverteilt. Welchen TR-Befehl verwendest du für P(X ≤ 3)?</div>
+    <div class="q-params">n = 10 &nbsp;|&nbsp; p = 0,3</div>
+    <div class="options">
+      <button class="option-btn" data-correct="false"><span class="letter">A</span> binomialPDf(3, 10, 0,3)</button>
+      <button class="option-btn" data-correct="true"><span class="letter">B</span> binomialCDf(0, 3, 10, 0,3)</button>
+      <button class="option-btn" data-correct="false"><span class="letter">C</span> binomialCDf(3, 10, 10, 0,3)</button>
+      <button class="option-btn" data-correct="false"><span class="letter">D</span> binomialPDf(0, 3, 10, 0,3)</button>
+    </div>
+    <div class="feedback" id="fb0"></div>
+    <div class="nav-row"><button class="btn-next" id="next0">Weiter →</button></div>
+  </div>
+
+  <!-- Frage 2 -->
+  <div class="question-card" data-index="1">
+    <div class="q-number">Frage 2 von 5</div>
+    <div class="q-type-badge">Bernoulli-Formel</div>
+    <div class="q-text">Katharina trifft jeden Freiwurf mit 60 %. Das Rad wird 3-mal gedreht. Wie groß ist P(X = 2)?</div>
+    <div class="q-params">n = 3 &nbsp;|&nbsp; p = 0,6 &nbsp;|&nbsp; k = 2</div>
+    <div class="options">
+      <button class="option-btn" data-correct="false"><span class="letter">A</span> 0,216</button>
+      <button class="option-btn" data-correct="true"><span class="letter">B</span> 0,432</button>
+      <button class="option-btn" data-correct="false"><span class="letter">C</span> 0,288</button>
+      <button class="option-btn" data-correct="false"><span class="letter">D</span> 0,064</button>
+    </div>
+    <div class="feedback" id="fb1"></div>
+    <div class="nav-row"><button class="btn-next" id="next1">Weiter →</button></div>
+  </div>
+
+  <!-- Frage 3 -->
+  <div class="question-card" data-index="2">
+    <div class="q-number">Frage 3 von 5</div>
+    <div class="q-type-badge">Variante II – n gesucht</div>
+    <div class="q-text">Man möchte mit mindestens 90 % Wahrscheinlichkeit mindestens einmal eine Sechs würfeln. Wie oft muss man mindestens würfeln?</div>
+    <div class="q-params">p = 1/6 &nbsp;|&nbsp; P(X ≥ 1) ≥ 0,9</div>
+    <div class="options">
+      <button class="option-btn" data-correct="false"><span class="letter">A</span> n = 10</button>
+      <button class="option-btn" data-correct="false"><span class="letter">B</span> n = 11</button>
+      <button class="option-btn" data-correct="true"><span class="letter">C</span> n = 13</button>
+      <button class="option-btn" data-correct="false"><span class="letter">D</span> n = 6</button>
+    </div>
+    <div class="feedback" id="fb2"></div>
+    <div class="nav-row"><button class="btn-next" id="next2">Weiter →</button></div>
+  </div>
+
+  <!-- Frage 4 -->
+  <div class="question-card" data-index="3">
+    <div class="q-number">Frage 4 von 5</div>
+    <div class="q-type-badge">Umrechnung</div>
+    <div class="q-text">X ist binomialverteilt mit n = 5, p = 0,2. Wie berechnet man P(X ≥ 1) am effizientesten?</div>
+    <div class="q-params">n = 5 &nbsp;|&nbsp; p = 0,2</div>
+    <div class="options">
+      <button class="option-btn" data-correct="false"><span class="letter">A</span> P(X=1) + P(X=2) + P(X=3) + P(X=4) direkt addieren</button>
+      <button class="option-btn" data-correct="true"><span class="letter">B</span> 1 − P(X = 0)</button>
+      <button class="option-btn" data-correct="false"><span class="letter">C</span> binomialCDf(1, 5, 5, 0,2)</button>
+      <button class="option-btn" data-correct="false"><span class="letter">D</span> P(X=0) allein berechnen</button>
+    </div>
+    <div class="feedback" id="fb3"></div>
+    <div class="nav-row"><button class="btn-next" id="next3">Weiter →</button></div>
+  </div>
+
+  <!-- Frage 5 -->
+  <div class="question-card" data-index="4">
+    <div class="q-number">Frage 5 von 5</div>
+    <div class="q-type-badge">Anwendungsaufgabe</div>
+    <div class="q-text">Ein Airbus A320 hat 168 Sitze. Die Airline bucht 12 % mehr Tickets. Erfahrungsgemäß treten 85 % der Passagiere an. Welche Wahrscheinlichkeit ergibt sich, dass niemand zurückgewiesen werden muss?</div>
+    <div class="q-params">n = 188 &nbsp;|&nbsp; p = 0,85 &nbsp;|&nbsp; P(X ≤ 168)</div>
+    <div class="options">
+      <button class="option-btn" data-correct="false"><span class="letter">A</span> ≈ 0,500</button>
+      <button class="option-btn" data-correct="false"><span class="letter">B</span> ≈ 0,850</button>
+      <button class="option-btn" data-correct="true"><span class="letter">C</span> ≈ 0,967</button>
+      <button class="option-btn" data-correct="false"><span class="letter">D</span> ≈ 0,132</button>
+    </div>
+    <div class="feedback" id="fb4"></div>
+    <div class="nav-row"><button class="btn-next" id="next4" data-last="true">Auswertung anzeigen →</button></div>
+  </div>
+
+</div>
+
+<!-- Ergebnis -->
+<div id="result-screen">
+  <div class="score-ring" id="ring">
+    <span class="score-num" id="score-num">0/5</span>
+  </div>
+  <div class="result-title" id="result-title">–</div>
+  <div class="result-sub" id="result-sub">–</div>
+  <div class="review-list" id="review-list"></div>
+  <button class="btn-restart" onclick="restart()">Nochmal versuchen</button>
+</div>
+
+<script>
+  const feedbacks = [
+    {
+      correct: "Richtig! binomialCDf(u, o, n, p) gibt P(u ≤ X ≤ o). Für P(X ≤ 3) ist u = 0, o = 3 — also binomialCDf(0, 3, 10, 0,3) ≈ 0,65.",
+      wrong: "Nicht ganz. Für kumulierte Wahrscheinlichkeiten nutzt du binomialCDf(u, o, n, p). Hier: binomialCDf(0, 3, 10, 0,3) ≈ 0,65. binomialPDf gibt nur Einzelwahrscheinlichkeiten."
+    },
+    {
+      correct: "Richtig! P(X=2) = C(3,2) · 0,6² · 0,4¹ = 3 · 0,36 · 0,4 = 0,432.",
+      wrong: "Leider falsch. P(X=2) = C(3,2) · 0,6² · 0,4¹ = 3 · 0,36 · 0,4 = 0,432. Denke an: Binomialkoeffizient × p^k × (1−p)^(n−k)."
+    },
+    {
+      correct: "Richtig! P(X ≥ 1) = 1 − P(X=0) = 1 − (5/6)^n ≥ 0,9 → (5/6)^n ≤ 0,1. Über die Tabelle/TR ergibt sich n = 13.",
+      wrong: "Nicht ganz. Ansatz: P(X ≥ 1) = 1 − (5/6)^n ≥ 0,9. Mit TR (Tabelle: binomialCDf(1,x,x,1/6)) findet man n = 13."
+    },
+    {
+      correct: "Richtig! P(X ≥ 1) = 1 − P(X=0) ist der eleganteste Weg — nur eine Rechnung statt viele zu addieren.",
+      wrong: "Nicht ganz. P(X ≥ 1) = 1 − P(X=0) ist am effizientesten. Das Gegenereignis nutzen spart viel Rechenaufwand!"
+    },
+    {
+      correct: "Richtig! X ~ B(188; 0,85), gesucht P(X ≤ 168). TR: binomialCDf(0, 168, 188, 0,85) ≈ 0,967.",
+      wrong: "Leider falsch. X ~ B(188; 0,85) weil 168 · 1,12 ≈ 188 Tickets verkauft. Gesucht: P(X ≤ 168) = binomialCDf(0,168,188,0.85) ≈ 0,967."
+    }
+  ];
+
+  const questions = ["Frage 1: TR-Befehl für P(X ≤ k)", "Frage 2: Bernoulli-Formel P(X=2)", "Frage 3: n bei gegebener W'keit", "Frage 4: Gegenereignis nutzen", "Frage 5: Überbuchungs-Problem"];
+
+  let current = 0;
+  let score = 0;
+  let results = [];
+
+  document.querySelectorAll('.question-card').forEach((card, qi) => {
+    card.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        const correct = btn.dataset.correct === 'true';
+        const fb = document.getElementById('fb' + qi);
+        if (correct) {
+          card.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+          btn.classList.add('correct');
+          fb.innerHTML = '<strong>✓ Korrekt</strong>' + feedbacks[qi].correct;
+          fb.className = 'feedback show correct-fb';
+          if (results[qi] === undefined) score++;
+          results[qi] = true;
+          document.getElementById('next' + qi).classList.add('show');
+          updateProgress(qi + 1);
+        } else {
+          btn.classList.add('wrong');
+          btn.disabled = true;
+          fb.innerHTML = '<strong>✗ Falsch – versuch es nochmal!</strong>';
+          fb.className = 'feedback show wrong-fb';
+          if (results[qi] === undefined) results[qi] = false;
+        }
+      });
+    });
+    document.getElementById('next' + qi).addEventListener('click', () => {
+      card.classList.remove('active');
+      if (document.getElementById('next' + qi).dataset.last) {
+        showResult();
+      } else {
+        document.querySelector('[data-index="' + (qi + 1) + '"]').classList.add('active');
+      }
+    });
+  });
+
+  function updateProgress(n) {
+    document.getElementById('progress').style.width = (n / 5 * 100) + '%';
+  }
+
+  function showResult() {
+    document.getElementById('quiz-area').style.display = 'none';
+    const rs = document.getElementById('result-screen');
+    rs.classList.add('show');
+    document.getElementById('score-num').textContent = score + '/5';
+    const pct = (score / 5 * 100).toFixed(0);
+    document.getElementById('ring').style.setProperty('--pct', pct + '%');
+    const titles = ['Weiter üben!', 'Guter Start!', 'Solide!', 'Sehr gut!', 'Fast perfekt!', 'Perfekt! 🎉'];
+    const subs = [
+      'Schau dir nochmal die Formeln an.',
+      'Die Grundlagen sitzen schon!',
+      'Noch ein bisschen Übung bei kumulierten W\'keiten.',
+      'Du beherrschst die Binomialverteilung gut!',
+      'Nur eine kleine Lücke — sehr stark!',
+      'Alle 5 Aufgaben richtig gelöst!'
+    ];
+    document.getElementById('result-title').textContent = titles[score];
+    document.getElementById('result-sub').textContent = subs[score];
+    const rl = document.getElementById('review-list');
+    rl.innerHTML = '';
+    results.forEach((r, i) => {
+      rl.innerHTML += '<div class="review-item"><span class="ri-icon ' + (r ? 'ok' : 'no') + '">' + (r ? '✓' : '✗') + '</span><span>' + questions[i] + '</span></div>';
+    });
+    updateProgress(5);
+  }
+
+  function restart() {
+    score = 0; results = [];
+    document.getElementById('quiz-area').style.display = 'block';
+    document.getElementById('result-screen').classList.remove('show');
+    document.querySelectorAll('.question-card').forEach((card, i) => {
+      card.classList.remove('active');
+      if (i === 0) card.classList.add('active');
+      card.querySelectorAll('.option-btn').forEach(b => {
+        b.disabled = false;
+        b.classList.remove('correct', 'wrong');
+      });
+      document.getElementById('fb' + i).className = 'feedback';
+      document.getElementById('next' + i).classList.remove('show');
+    });
+    updateProgress(0);
+  }
+</script>
+</body>
+</html>

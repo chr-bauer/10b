@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Politik-Jeopardy – Klasse 10</title>
+<style>
+  :root{
+    --jeopardy-blue:#060CE9;
+    --jeopardy-blue-dark:#0400a0;
+    --jeopardy-gold:#FFCC00;
+    --jeopardy-white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Arial Narrow', Arial, sans-serif;
+    background:radial-gradient(ellipse at center, #1018b8 0%, #02043a 100%);
+    min-height:100vh;
+    color:white;
+    padding:20px;
+  }
+  h1.title{
+    text-align:center;
+    font-family:'Georgia', 'Times New Roman', serif;
+    font-size:48px;
+    letter-spacing:4px;
+    color:var(--jeopardy-gold);
+    text-shadow:3px 3px 0 #000, 0 0 25px rgba(255,204,0,0.6);
+    margin:10px 0 4px 0;
+  }
+  p.subtitle{
+    text-align:center;
+    color:#dfe3ff;
+    margin:0 0 20px 0;
+    font-size:16px;
+    letter-spacing:1px;
+  }
+
+  #scoreboard{
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+  }
+  .team-box{
+    background:var(--jeopardy-blue);
+    border:3px solid var(--jeopardy-gold);
+    border-radius:8px;
+    padding:10px 22px;
+    text-align:center;
+    min-width:160px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.5);
+  }
+  .team-box h3{
+    margin:0 0 6px 0;
+    font-family:'Georgia', serif;
+    color:var(--jeopardy-gold);
+    font-size:18px;
+  }
+  .team-score{
+    font-size:30px;
+    font-weight:bold;
+    font-family:'Georgia', serif;
+    color:white;
+  }
+  .score-btns{
+    margin-top:8px;
+    display:flex;
+    gap:6px;
+    justify-content:center;
+  }
+  .score-btns button{
+    background:var(--jeopardy-gold);
+    border:none;
+    border-radius:4px;
+    padding:3px 8px;
+    font-weight:bold;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .score-btns button:hover{background:#fff;}
+
+  #board{
+    max-width:1200px;
+    margin:0 auto;
+    border:4px solid var(--jeopardy-gold);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,0.6);
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--jeopardy-blue);
+  }
+  th{
+    background:var(--jeopardy-blue-dark);
+    color:var(--jeopardy-gold);
+    font-family:'Georgia', serif;
+    text-transform:uppercase;
+    font-size:18px;
+    padding:14px 6px;
+    border:3px solid #02043a;
+    letter-spacing:1px;
+    text-align:center;
+  }
+  td.cell{
+    border:3px solid #02043a;
+    text-align:center;
+    vertical-align:middle;
+    padding:0;
+    height:80px;
+  }
+  .clue-btn{
+    width:100%;
+    height:100%;
+    background:var(--jeopardy-blue);
+    color:var(--jeopardy-gold);
+    border:none;
+    font-family:'Georgia', serif;
+    font-size:28px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:background 0.15s;
+  }
+  .clue-btn:hover{
+    background:#1a22ff;
+  }
+  .clue-btn.used{
+    background:#02043a;
+    color:#1a22cc;
+    cursor:default;
+  }
+
+  /* Modal */
+  #overlay{
+    display:none;
+    position:fixed;
+    top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.75);
+    z-index:50;
+    align-items:center;
+    justify-content:center;
+  }
+  #clueCard{
+    background:var(--jeopardy-blue);
+    border:6px solid var(--jeopardy-gold);
+    border-radius:14px;
+    width:80%;
+    max-width:800px;
+    min-height:320px;
+    padding:40px;
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    box-shadow:0 0 60px rgba(255,204,0,0.4);
+  }
+  #clueCategory{
+    color:#a9b1ff;
+    font-size:16px;
+    text-transform:uppercase;
+    letter-spacing:2px;
+    margin-bottom:10px;
+  }
+  #clueValue{
+    color:var(--jeopardy-gold);
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:20px;
+  }
+  #clueQuestion{
+    color:white;
+    font-size:30px;
+    font-family:'Georgia', serif;
+    line-height:1.4;
+    flex-grow:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #clueAnswer{
+    display:none;
+    color:var(--jeopardy-gold);
+    font-size:24px;
+    font-family:'Georgia', serif;
+    margin-top:10px;
+    border-top:2px dashed rgba(255,255,255,0.3);
+    padding-top:15px;
+  }
+  .modal-buttons{
+    margin-top:20px;
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .modal-buttons button{
+    background:var(--jeopardy-gold);
+    border:none;
+    border-radius:6px;
+    padding:10px 18px;
+    font-weight:bold;
+    font-size:15px;
+    cursor:pointer;
+    font-family:Arial, sans-serif;
+  }
+  .modal-buttons button:hover{background:#fff;}
+  .modal-buttons button.close-btn{
+    background:#444;
+    color:white;
+  }
+  .modal-buttons button.close-btn:hover{background:#666;}
+
+  #resetWrap{
+    text-align:center;
+    margin-top:25px;
+  }
+  #resetWrap button{
+    background:transparent;
+    border:2px solid var(--jeopardy-gold);
+    color:var(--jeopardy-gold);
+    padding:8px 20px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+    margin:0 8px;
+  }
+  #resetWrap button:hover{background:var(--jeopardy-gold); color:#02043a;}
+
+  /* Startbildschirm */
+  #startScreen{
+    min-height:80vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #startCard{
+    background:var(--jeopardy-blue);
+    border:5px solid var(--jeopardy-gold);
+    border-radius:14px;
+    padding:40px 50px;
+    margin-top:30px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.6);
+  }
+  #startCard h2{
+    color:var(--jeopardy-gold);
+    font-family:'Georgia', serif;
+    margin-top:0;
+    margin-bottom:25px;
+    font-size:24px;
+  }
+  #teamChoices{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+  }
+  .team-choice-btn{
+    background:var(--jeopardy-gold);
+    border:none;
+    border-radius:8px;
+    padding:18px 10px;
+    font-weight:bold;
+    font-size:17px;
+    cursor:pointer;
+    font-family:Arial, sans-serif;
+    color:#02043a;
+    transition:transform 0.1s, background 0.15s;
+  }
+  .team-choice-btn:hover{
+    background:#fff;
+    transform:translateY(-2px);
+  }
+  @media (max-width:500px){
+    #teamChoices{grid-template-columns:repeat(2, 1fr);}
+    #startCard{padding:25px 20px;}
+  }
+
+  @media (max-width:800px){
+    h1.title{font-size:30px;}
+    th{font-size:12px; padding:8px 2px;}
+    .clue-btn{font-size:18px;}
+    #clueQuestion{font-size:20px;}
+    #clueCard{padding:20px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <h1 class="title">POLITIK-JEOPARDY</h1>
+  <p class="subtitle">Politische Allgemeinbildung & aktuelle Geschehnisse — Klasse 10</p>
+  <div id="startCard">
+    <h2>Wie viele Teams spielen mit?</h2>
+    <div id="teamChoices">
+      <button class="team-choice-btn" onclick="startGame(1)">1 Team</button>
+      <button class="team-choice-btn" onclick="startGame(2)">2 Teams</button>
+      <button class="team-choice-btn" onclick="startGame(3)">3 Teams</button>
+      <button class="team-choice-btn" onclick="startGame(4)">4 Teams</button>
+      <button class="team-choice-btn" onclick="startGame(5)">5 Teams</button>
+      <button class="team-choice-btn" onclick="startGame(6)">6 Teams</button>
+    </div>
+  </div>
+</div>
+
+<div id="gameScreen" style="display:none;">
+<h1 class="title">POLITIK-JEOPARDY</h1>
+<p class="subtitle">Politische Allgemeinbildung & aktuelle Geschehnisse — Klasse 10</p>
+
+<div id="scoreboard"></div>
+
+<div id="board"></div>
+
+<div id="resetWrap">
+  <button onclick="goToStart()">Zurück zur Startseite</button>
+  <button onclick="resetBoard()">Spielbrett zurücksetzen</button>
+</div>
+</div>
+
+<div id="overlay">
+  <div id="clueCard">
+    <div id="clueCategory"></div>
+    <div id="clueValue"></div>
+    <div id="clueQuestion"></div>
+    <div id="clueAnswer"></div>
+    <div class="modal-buttons">
+      <button id="revealBtn" onclick="revealAnswer()">Auflösen</button>
+      <button class="close-btn" onclick="closeClue()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Datenbasis ----------
+// Punktewerte steigen mit der Schwierigkeit (100-500)
+const categories = [
+  {
+    name: "Staat & Verfassung",
+    clues: [
+      {value:100, q:"So viele Bundesländer hat die Bundesrepublik Deutschland.", a:"Was ist 16?"},
+      {value:200, q:"In diesem Jahr trat das Grundgesetz der Bundesrepublik Deutschland in Kraft.", a:"Was ist 1949?"},
+      {value:300, q:"Dieses Verfassungsorgan wählt den Bundeskanzler bzw. die Bundeskanzlerin.", a:"Was ist der Bundestag?"},
+      {value:400, q:"So viele Lesungen durchläuft ein Gesetzesentwurf im Bundestag in der Regel, bevor er verabschiedet werden kann.", a:"Was sind drei (Lesungen)?"},
+      {value:500, q:"So heißt die im Grundgesetz verankerte Sperrklausel, die Parteien überwinden müssen, um in den Bundestag einzuziehen.", a:"Was ist die 5-Prozent-Hürde?"}
+    ]
+  },
+  {
+    name: "Parteien & Wahlen in Deutschland",
+    clues: [
+      {value:100, q:"Dieser CDU-Politiker ist seit Mai 2025 Bundeskanzler der Bundesrepublik Deutschland.", a:"Wer ist Friedrich Merz?"},
+      {value:200, q:"Diese zwei Parteien bilden seit 2025 die Regierungskoalition unter Bundeskanzler Merz.", a:"Was sind CDU/CSU und SPD?"},
+      {value:300, q:"So nennt man das deutsche Wahlsystem, das Elemente von Mehrheits- und Verhältniswahl kombiniert.", a:"Was ist die personalisierte Verhältniswahl?"},
+      {value:400, q:"So heißt das Gremium, das den Bundespräsidenten bzw. die Bundespräsidentin wählt.", a:"Was ist die Bundesversammlung?"},
+      {value:500, q:"Dieser Politiker ist seit 2017 Bundespräsident der Bundesrepublik Deutschland und im Amt (Stand 2026).", a:"Wer ist Frank-Walter Steinmeier?"}
+    ]
+  },
+  {
+    name: "Europäische Union",
+    clues: [
+      {value:100, q:"So viele Mitgliedstaaten hat die Europäische Union (Stand 2026).", a:"Was ist 27?"},
+      {value:200, q:"So heißt das einzige direkt von den Bürgerinnen und Bürgern der EU gewählte Organ der Europäischen Union.", a:"Was ist das Europäische Parlament?"},
+      {value:300, q:"Diese gemeinsame Währung verwenden 20 der 27 EU-Mitgliedstaaten.", a:"Was ist der Euro?"},
+      {value:400, q:"So heißt das europäische Asylsystem, das im Juni 2026 EU-weit verbindlich in Kraft trat, um Asylverfahren zu vereinheitlichen.", a:"Was ist das Gemeinsame Europäische Asylsystem (GEAS)?"},
+      {value:500, q:"Dieser Politiker ist seit Dezember 2024 Präsident des Europäischen Rates.", a:"Wer ist António Costa?"}
+    ]
+  },
+  {
+    name: "Internationale Politik",
+    clues: [
+      {value:100, q:"So heißen insgesamt die fünf ständigen Mitglieder des UN-Sicherheitsrats mit Vetorecht.", a:"Was sind USA, Russland, China, Großbritannien und Frankreich?"},
+      {value:200, q:"Dieses Land führt seit Februar 2022 einen groß angelegten Angriffskrieg gegen die Ukraine.", a:"Was ist Russland?"},
+      {value:300, q:"So heißt das westliche Militärbündnis, dem Deutschland seit 1955 angehört.", a:"Was ist die NATO?"},
+      {value:400, q:"Diese drei Länder waren 2026 gemeinsam Gastgeber der Fußball-Weltmeisterschaft.", a:"Was sind USA, Kanada und Mexiko?"},
+      {value:500, q:"Dieses Land erhielt im Juni 2026 bei der UN-Vollversammlung trotz Bewerbung NICHT die nötige Zweidrittelmehrheit für einen nichtständigen Sitz im Sicherheitsrat.", a:"Was ist Deutschland?"}
+    ]
+  },
+  {
+    name: "Aktuelle Geschehnisse 2026",
+    clues: [
+      {value:100, q:"Dieses Staatenbündnis verlängerte im Juni 2026 seine Wirtschaftssanktionen gegen Russland erstmals um zwölf statt sechs Monate.", a:"Was ist die Europäische Union?"},
+      {value:200, q:"Auf diesen Betrag pro Stunde wurde der gesetzliche Mindestlohn in Deutschland zum 1. Januar 2026 angehoben.", a:"Was sind 13,90 Euro?"},
+      {value:300, q:"So heißt das deutsch-französische Kampfflugzeug-Projekt, dessen gemeinsame Entwicklung im Juni 2026 wegen Unstimmigkeiten zwischen Airbus und Dassault Aviation beendet wurde.", a:"Was ist FCAS (Future Combat Air System)?"},
+      {value:400, q:"Dieser britische Premierminister geriet im Juni 2026 nach einer verlorenen Nachwahl seiner Partei zunehmend unter parteiinternen Druck.", a:"Wer ist Keir Starmer?"},
+      {value:500, q:"Diese EU-Regelung sollte laut einem Vorschlag des deutschen Bundesinnenministers im Juni 2026 so geändert werden, dass geflüchtete ukrainische Männer im wehrfähigen Alter davon ausgenommen werden.", a:"Was ist die EU-Massenzustromrichtlinie?"}
+    ]
+  }
+];
+
+// ---------- State ----------
+let numTeams = 3;
+let scores = {};
+let usedClues = {};
+let currentClue = null;
+
+// ---------- Start / Scoreboard ----------
+function startGame(n){
+  numTeams = n;
+  scores = {};
+  for(let i=1; i<=n; i++){ scores[i] = 0; }
+  usedClues = {};
+  buildScoreboard();
+  buildBoard();
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'block';
+}
+
+function goToStart(){
+  document.getElementById('gameScreen').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'flex';
+}
+
+function buildScoreboard(){
+  const sb = document.getElementById('scoreboard');
+  let html = '';
+  for(let i=1; i<=numTeams; i++){
+    html += `
+    <div class="team-box">
+      <h3>Team ${i}</h3>
+      <div class="team-score" id="score${i}">0</div>
+      <div class="score-btns">
+        <button onclick="adjustScore(${i},-100)">−100</button>
+        <button onclick="adjustScore(${i},100)">+100</button>
+      </div>
+    </div>`;
+  }
+  sb.innerHTML = html;
+}
+
+// ---------- Board erstellen ----------
+function buildBoard(){
+  const board = document.getElementById('board');
+  let html = '<table><thead><tr>';
+  categories.forEach(cat => {
+    html += `<th>${cat.name}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  for(let row=0; row<5; row++){
+    html += '<tr>';
+    categories.forEach((cat, ci) => {
+      const clue = cat.clues[row];
+      const id = ci + '-' + row;
+      const usedClass = usedClues[id] ? 'used' : '';
+      html += `<td class="cell"><button class="clue-btn ${usedClass}" id="btn-${id}" onclick="openClue(${ci},${row})" ${usedClues[id]?'disabled':''}>${usedClues[id] ? '' : clue.value+'€'}</button></td>`;
+    });
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  board.innerHTML = html;
+}
+
+function openClue(ci, row){
+  const cat = categories[ci];
+  const clue = cat.clues[row];
+  currentClue = {ci, row, clue};
+  document.getElementById('clueCategory').textContent = cat.name;
+  document.getElementById('clueValue').textContent = clue.value + '€';
+  document.getElementById('clueQuestion').textContent = clue.q;
+  const ansEl = document.getElementById('clueAnswer');
+  ansEl.style.display = 'none';
+  ansEl.textContent = clue.a;
+  document.getElementById('revealBtn').textContent = 'Auflösen';
+  document.getElementById('revealBtn').style.display = 'inline-block';
+  document.getElementById('overlay').style.display = 'flex';
+}
+
+function revealAnswer(){
+  document.getElementById('clueAnswer').style.display = 'block';
+}
+
+function closeClue(){
+  if(currentClue){
+    const id = currentClue.ci + '-' + currentClue.row;
+    usedClues[id] = true;
+  }
+  document.getElementById('overlay').style.display = 'none';
+  currentClue = null;
+  buildBoard();
+}
+
+function adjustScore(team, amount){
+  scores[team] += amount;
+  document.getElementById('score'+team).textContent = scores[team];
+}
+
+function resetBoard(){
+  if(!confirm('Spielbrett und Punktestand wirklich zurücksetzen?')) return;
+  usedClues = {};
+  for(let i=1; i<=numTeams; i++){ scores[i] = 0; }
+  buildScoreboard();
+  buildBoard();
+}
+
+// Schließen per Klick auf Overlay-Hintergrund verhindern (versehentliches Schließen vermeiden)
+document.getElementById('overlay').addEventListener('click', function(e){
+  if(e.target === this){
+    // kein automatisches Schließen, damit man die Frage nicht versehentlich verliert
+  }
+});
+
+// Spiel startet erst nach Auswahl der Teamanzahl auf der Startseite (siehe startGame())
+</script>
+
+</body>
+</html>

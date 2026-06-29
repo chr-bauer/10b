@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz: Lösen von Gleichungen</title>
+<style>
+  :root{
+    --bg1:#1e1b4b;
+    --bg2:#312e81;
+    --accent:#fbbf24;
+    --accent2:#f472b6;
+    --correct:#22c55e;
+    --wrong:#ef4444;
+    --card:#ffffff;
+    --text:#1e1b2e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Segoe UI', Roboto, Arial, sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    color:var(--text);
+  }
+  .app{
+    width:100%;
+    max-width:680px;
+  }
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    color:#fff;
+    margin-bottom:14px;
+    font-weight:600;
+    font-size:15px;
+  }
+  .lives{
+    font-size:20px;
+    letter-spacing:2px;
+  }
+  .progress-wrap{
+    background:rgba(255,255,255,0.15);
+    border-radius:20px;
+    height:10px;
+    overflow:hidden;
+    margin-bottom:18px;
+  }
+  .progress-bar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    border-radius:20px;
+    transition:width .4s ease;
+  }
+  .card{
+    background:var(--card);
+    border-radius:18px;
+    padding:28px 26px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+    position:relative;
+    overflow:hidden;
+    animation:slideIn .35s ease;
+  }
+  @keyframes slideIn{
+    from{opacity:0; transform:translateY(18px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .category{
+    display:inline-block;
+    background:#eef2ff;
+    color:#4338ca;
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    padding:5px 12px;
+    border-radius:20px;
+    margin-bottom:14px;
+  }
+  .qnum{
+    font-size:13px;
+    color:#888;
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .question{
+    font-size:21px;
+    font-weight:700;
+    margin:0 0 22px 0;
+    line-height:1.45;
+  }
+  .options{
+    display:grid;
+    gap:12px;
+  }
+  .opt{
+    text-align:left;
+    border:2px solid #e5e7eb;
+    background:#fafafa;
+    border-radius:12px;
+    padding:13px 16px;
+    font-size:16px;
+    cursor:pointer;
+    transition:all .15s ease;
+    font-weight:600;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .opt:hover:not(:disabled){
+    border-color:#a5b4fc;
+    background:#eef2ff;
+    transform:translateY(-1px);
+  }
+  .opt:disabled{cursor:default;}
+  .opt .letter{
+    width:26px;height:26px;
+    border-radius:50%;
+    background:#e5e7eb;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;
+    flex-shrink:0;
+  }
+  .opt.correct{
+    border-color:var(--correct);
+    background:#dcfce7;
+    animation:pop .3s ease;
+  }
+  .opt.correct .letter{background:var(--correct); color:#fff;}
+  .opt.wrong{
+    border-color:var(--wrong);
+    background:#fee2e2;
+    animation:shake .3s ease;
+  }
+  .opt.wrong .letter{background:var(--wrong); color:#fff;}
+  @keyframes pop{
+    0%{transform:scale(1);}
+    50%{transform:scale(1.03);}
+    100%{transform:scale(1);}
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    25%{transform:translateX(-6px);}
+    75%{transform:translateX(6px);}
+  }
+  .feedback{
+    margin-top:18px;
+    padding:14px 16px;
+    border-radius:10px;
+    font-size:14.5px;
+    line-height:1.5;
+    display:none;
+  }
+  .feedback.show{display:block; animation:fadeIn .3s ease;}
+  @keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+  .feedback.right{background:#dcfce7; color:#166534;}
+  .feedback.wrong{background:#fee2e2; color:#991b1b;}
+  .nextbtn{
+    margin-top:18px;
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    color:#1e1b2e;
+    font-weight:800;
+    font-size:16px;
+    cursor:pointer;
+    display:none;
+  }
+  .nextbtn.show{display:block;}
+  .nextbtn:hover{filter:brightness(1.05);}
+  .streak{
+    position:absolute;
+    top:18px; right:22px;
+    font-size:13px;
+    font-weight:700;
+    color:#d97706;
+    background:#fffbeb;
+    padding:4px 10px;
+    border-radius:20px;
+  }
+  /* Start & Ende */
+  .center-card{
+    text-align:center;
+  }
+  .center-card h1{
+    font-size:26px;
+    margin:6px 0 6px 0;
+  }
+  .center-card p{
+    color:#555;
+    font-size:15px;
+    margin-bottom:22px;
+  }
+  .bigbtn{
+    padding:15px 34px;
+    border:none;
+    border-radius:14px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    color:#1e1b2e;
+    font-weight:800;
+    font-size:17px;
+    cursor:pointer;
+  }
+  .bigbtn:hover{filter:brightness(1.05);}
+  .emoji{font-size:54px; margin-bottom:6px;}
+  .resultgrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin:22px 0;
+    text-align:left;
+  }
+  .resultbox{
+    background:#f3f4f6;
+    border-radius:12px;
+    padding:14px;
+  }
+  .resultbox .num{
+    font-size:24px;
+    font-weight:800;
+  }
+  .resultbox .label{
+    font-size:12.5px;
+    color:#666;
+  }
+  .reviewlist{
+    text-align:left;
+    margin-top:8px;
+    max-height:260px;
+    overflow-y:auto;
+    border-top:1px solid #eee;
+    padding-top:10px;
+  }
+  .reviewitem{
+    font-size:13.5px;
+    padding:8px 0;
+    border-bottom:1px solid #f0f0f0;
+  }
+  .reviewitem.ok span.tag{color:var(--correct); font-weight:700;}
+  .reviewitem.bad span.tag{color:var(--wrong); font-weight:700;}
+  footer{
+    text-align:center;
+    color:rgba(255,255,255,0.55);
+    font-size:12px;
+    margin-top:16px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div id="livesDisplay" class="lives">❤️❤️❤️</div>
+    <div id="scoreDisplay">Punkte: 0</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="card" id="card"></div>
+  <footer>Quiz zum Arbeitsblatt „Wiederholung: Lösen von Gleichungen" – 10. Klasse</footer>
+</div>
+
+<script>
+const questions = [
+  {
+    cat: "Lineare Gleichungen",
+    q: "Löse: 5x − 7 = 2x + 8",
+    options: ["x = 5", "x = 15", "x = 3", "x = -5"],
+    correct: 0,
+    explain: "5x − 7 = 2x + 8  ⟺  3x = 15  ⟺  x = 5."
+  },
+  {
+    cat: "Lineare Gleichungen",
+    q: "Löse: 3(x + 4) = 2(x − 1) + 19",
+    options: ["x = 17", "x = 5", "x = -5", "x = 7"],
+    correct: 1,
+    explain: "3x + 12 = 2x + 17  ⟺  x = 5."
+  },
+  {
+    cat: "Lineare Gleichungen",
+    q: "Löse: x/3 + 5 = x/2 − 1",
+    options: ["x = 6", "x = -36", "x = 36", "x = 12"],
+    correct: 2,
+    explain: "Mit 6 multiplizieren: 2x + 30 = 3x − 6  ⟺  x = 36."
+  },
+  {
+    cat: "Lineare Gleichungen",
+    q: "Wie viele Lösungen hat 2(2x − 3) − (x + 1) = 3x − 10?",
+    options: ["Genau eine Lösung", "Zwei Lösungen", "Keine Lösung (leere Lösungsmenge)", "Unendlich viele Lösungen"],
+    correct: 2,
+    explain: "Es ergibt sich 3x − 7 = 3x − 10, also −7 = −10. Das ist falsch → keine Lösung."
+  },
+  {
+    cat: "Quadratische Gleichungen (Ausklammern)",
+    q: "Löse durch Ausklammern: x² − 5x = 0",
+    options: ["x₁ = 0, x₂ = -5", "x₁ = 0, x₂ = 5", "nur x = 5", "x₁ = 5, x₂ = -5"],
+    correct: 1,
+    explain: "x(x − 5) = 0  ⟺  x₁ = 0, x₂ = 5."
+  },
+  {
+    cat: "Quadratische Gleichungen (Ausklammern)",
+    q: "Löse durch Ausklammern: 2x² + 8x = 0",
+    options: ["x₁ = 0, x₂ = 4", "x₁ = 0, x₂ = -4", "x₁ = 2, x₂ = -8", "keine Lösung"],
+    correct: 1,
+    explain: "2x(x + 4) = 0  ⟺  x₁ = 0, x₂ = -4."
+  },
+  {
+    cat: "Quadratische Gleichungen (Wurzelziehen)",
+    q: "Löse: 3x² − 12 = 0",
+    options: ["x₁ = 2, x₂ = -2", "x₁ = 4, x₂ = -4", "nur x = 4", "x₁ = 6, x₂ = -6"],
+    correct: 0,
+    explain: "x² = 4  ⟺  x₁ = 2, x₂ = -2."
+  },
+  {
+    cat: "Quadratische Gleichungen (Ausklammern)",
+    q: "Welche Umformung führt bei x² = 9x zur Lösung?",
+    options: ["x² − 9x = 0, dann x(x−9)=0", "Beide Seiten durch x teilen", "Wurzel ziehen aus beiden Seiten", "x² + 9x = 0 bilden"],
+    correct: 0,
+    explain: "x² − 9x = 0 ⟺ x(x − 9) = 0 ⟺ x₁ = 0, x₂ = 9. (Bei Division durch x ginge die Lösung x=0 verloren!)"
+  },
+  {
+    cat: "p-q-Formel",
+    q: "Gegeben: x² − 2x − 15 = 0. Wie lauten p und q?",
+    options: ["p = -2, q = -15", "p = 2, q = 15", "p = -15, q = -2", "p = 1, q = -2"],
+    correct: 0,
+    explain: "Die Gleichung ist bereits in Normalform x² + px + q = 0, also p = -2 und q = -15."
+  },
+  {
+    cat: "p-q-Formel",
+    q: "Löse mit der p-q-Formel: x² − 2x − 15 = 0",
+    options: ["x₁ = 5, x₂ = -3", "x₁ = 3, x₂ = -5", "x₁ = -5, x₂ = -3", "x₁ = 5, x₂ = 3"],
+    correct: 0,
+    explain: "p = -2, q = -15 → x = 1 ± √(1+15) = 1 ± 4 → x₁ = 5, x₂ = -3."
+  },
+  {
+    cat: "p-q-Formel",
+    q: "Löse: x² + 6x + 8 = 0",
+    options: ["x₁ = -2, x₂ = -4", "x₁ = 2, x₂ = 4", "x₁ = -2, x₂ = 4", "x₁ = 2, x₂ = -4"],
+    correct: 0,
+    explain: "p = 6, q = 8 → x = -3 ± √(9-8) = -3 ± 1 → x₁ = -2, x₂ = -4."
+  },
+  {
+    cat: "p-q-Formel",
+    q: "Was ist bei x² − 4x + 4 = 0 besonders?",
+    options: ["Es gibt keine Lösung", "Es gibt eine doppelte Lösung x = 2", "Es gibt zwei verschiedene Lösungen", "Es gibt unendlich viele Lösungen"],
+    correct: 1,
+    explain: "Diskriminante = (−2)² − 4 = 0, daher genau eine (doppelte) Lösung: x = 2."
+  },
+  {
+    cat: "p-q-Formel",
+    q: "Wie viele reelle Lösungen hat x² + 2x + 5 = 0?",
+    options: ["Zwei Lösungen", "Eine doppelte Lösung", "Keine reelle Lösung", "Unendlich viele"],
+    correct: 2,
+    explain: "Diskriminante (p/2)² − q = 1 − 5 = −4 < 0 → keine reelle Lösung."
+  },
+  {
+    cat: "Gemischte Aufgaben",
+    q: "Was ist der erste Schritt bei 2x² − 8x − 10 = 0, bevor man die p-q-Formel anwendet?",
+    options: ["Beide Seiten quadrieren", "Durch 2 teilen, damit der Koeffizient vor x² gleich 1 ist", "x ausklammern", "Beide Seiten mit 2 multiplizieren"],
+    correct: 1,
+    explain: "Die p-q-Formel braucht die Normalform x² + px + q = 0, also muss man durch 2 teilen: x² − 4x − 5 = 0."
+  },
+  {
+    cat: "Gemischte Aufgaben",
+    q: "Löse: 2x² − 8x − 10 = 0",
+    options: ["x₁ = 5, x₂ = -1", "x₁ = -5, x₂ = 1", "x₁ = 5, x₂ = 1", "x₁ = -5, x₂ = -1"],
+    correct: 0,
+    explain: "Division durch 2: x² − 4x − 5 = 0 → p = -4, q = -5 → x₁ = 5, x₂ = -1."
+  },
+  {
+    cat: "Gemischte Aufgaben",
+    q: "Löse: 3x² + 6x − 24 = 0",
+    options: ["x₁ = 2, x₂ = -4", "x₁ = -2, x₂ = 4", "x₁ = 2, x₂ = 4", "x₁ = -2, x₂ = -4"],
+    correct: 0,
+    explain: "Division durch 3: x² + 2x − 8 = 0 → p = 2, q = -8 → x₁ = 2, x₂ = -4."
+  },
+  {
+    cat: "Textaufgabe",
+    q: "Das Produkt zweier aufeinanderfolgender natürlicher Zahlen beträgt 132. Welche Gleichung beschreibt das?",
+    options: ["x + (x+1) = 132", "x · (x+1) = 132", "x² = 132", "2x = 132"],
+    correct: 1,
+    explain: "Zwei aufeinanderfolgende Zahlen sind x und x+1, ihr Produkt: x · (x+1) = 132."
+  }
+];
+
+// Fragen mischen für mehr "Quiz"-Gefühl, aber Reihenfolge bei jedem Start neu
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+let order = [];
+let current = 0;
+let score = 0;
+let lives = 3;
+let streak = 0;
+let bestStreak = 0;
+let answered = false;
+let reviewLog = [];
+
+const card = document.getElementById('card');
+const progressBar = document.getElementById('progressBar');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const livesDisplay = document.getElementById('livesDisplay');
+
+function renderStart(){
+  card.innerHTML = `
+    <div class="center-card">
+      <div class="emoji">🧮</div>
+      <h1>Quiz: Gleichungen lösen</h1>
+      <p>${questions.length} Fragen zu linearen & quadratischen Gleichungen.<br>
+      Du hast 3 Leben ❤️❤️❤️ – bei 3 Fehlern ist das Quiz vorbei.<br>
+      Eine Streak-Serie bringt Bonuspunkte! 🔥</p>
+      <button class="bigbtn" onclick="startQuiz()">Quiz starten 🚀</button>
+    </div>
+  `;
+  livesDisplay.textContent = "";
+  scoreDisplay.textContent = "";
+  progressBar.style.width = "0%";
+}
+
+function shuffleOptions(item){
+  const indices = item.options.map((_,i)=>i);
+  const shuffled = shuffle(indices);
+  const newOptions = shuffled.map(i=>item.options[i]);
+  const newCorrect = shuffled.indexOf(item.correct);
+  return {...item, options:newOptions, correct:newCorrect};
+}
+
+function startQuiz(){
+  order = shuffle(questions).map(shuffleOptions);
+  current = 0;
+  score = 0;
+  lives = 3;
+  streak = 0;
+  bestStreak = 0;
+  reviewLog = [];
+  updateTop();
+  renderQuestion();
+}
+
+function updateTop(){
+  livesDisplay.textContent = "❤️".repeat(lives) + "🖤".repeat(3-lives);
+  scoreDisplay.textContent = "Punkte: " + score;
+  progressBar.style.width = (current/order.length*100) + "%";
+}
+
+function renderQuestion(){
+  answered = false;
+  const item = order[current];
+  const letters = ["A","B","C","D"];
+  card.innerHTML = `
+    <span class="category">${item.cat}</span>
+    ${streak>=2 ? `<div class="streak">🔥 Streak: ${streak}</div>` : ""}
+    <div class="qnum">Frage ${current+1} von ${order.length}</div>
+    <p class="question">${item.q}</p>
+    <div class="options" id="optionsWrap">
+      ${item.options.map((opt,i)=>`
+        <button class="opt" data-idx="${i}" onclick="selectAnswer(${i})">
+          <span class="letter">${letters[i]}</span><span>${opt}</span>
+        </button>`).join("")}
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <button class="nextbtn" id="nextBtn" onclick="nextQuestion()">Weiter →</button>
+  `;
+  updateTop();
+}
+
+function selectAnswer(idx){
+  if(answered) return;
+  answered = true;
+  const item = order[current];
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o=>o.disabled=true);
+
+  const isCorrect = idx === item.correct;
+  opts[idx].classList.add(isCorrect ? "correct" : "wrong");
+  if(!isCorrect){
+    opts[item.correct].classList.add("correct");
+    lives--;
+    streak = 0;
+  } else {
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    let gained = 10 + Math.min(streak-1,5)*2;
+    score += gained;
+  }
+
+  reviewLog.push({q:item.q, correctOpt:item.options[item.correct], chosen:item.options[idx], ok:isCorrect});
+
+  const fb = document.getElementById('feedback');
+  fb.classList.add('show', isCorrect ? 'right' : 'wrong');
+  fb.innerHTML = (isCorrect ? "✅ Richtig! " : "❌ Leider falsch. ") + item.explain;
+
+  updateTop();
+
+  const nextBtn = document.getElementById('nextBtn');
+  if(lives<=0){
+    nextBtn.textContent = "Ergebnis ansehen";
+  }
+  nextBtn.classList.add('show');
+}
+
+function nextQuestion(){
+  if(lives<=0){
+    renderResult(true);
+    return;
+  }
+  current++;
+  if(current >= order.length){
+    renderResult(false);
+  } else {
+    renderQuestion();
+  }
+}
+
+function renderResult(gameOver){
+  progressBar.style.width = "100%";
+  const totalAnswered = reviewLog.length;
+  const correctCount = reviewLog.filter(r=>r.ok).length;
+  const pct = Math.round((correctCount/totalAnswered)*100);
+
+  let title, emoji;
+  if(gameOver){
+    emoji = "💔"; title = "Spiel beendet – keine Leben mehr!";
+  } else if(pct === 100){
+    emoji = "🏆"; title = "Perfekt! Alle Fragen richtig!";
+  } else if(pct >= 70){
+    emoji = "🌟"; title = "Stark gemacht!";
+  } else if(pct >= 40){
+    emoji = "👍"; title = "Solider Versuch!";
+  } else {
+    emoji = "📚"; title = "Da geht noch mehr – nochmal üben!";
+  }
+
+  card.innerHTML = `
+    <div class="center-card">
+      <div class="emoji">${emoji}</div>
+      <h1>${title}</h1>
+      <p>Du hast ${correctCount} von ${totalAnswered} beantworteten Fragen richtig (${pct}%).</p>
+      <div class="resultgrid">
+        <div class="resultbox"><div class="num">${score}</div><div class="label">Punkte</div></div>
+        <div class="resultbox"><div class="num">${bestStreak}🔥</div><div class="label">Beste Streak</div></div>
+      </div>
+      <button class="bigbtn" onclick="renderStart()">Nochmal spielen 🔁</button>
+      <div class="reviewlist">
+        ${reviewLog.map(r=>`
+          <div class="reviewitem ${r.ok?'ok':'bad'}">
+            <span class="tag">${r.ok?'✓':'✗'}</span> ${r.q}<br>
+            ${r.ok ? '' : `<small>Deine Antwort: ${r.chosen} — Richtig: ${r.correctOpt}</small>`}
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+  livesDisplay.textContent = "";
+  scoreDisplay.textContent = "Endpunktzahl: " + score;
+}
+
+renderStart();
+</script>
+</body>
+</html>

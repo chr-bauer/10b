@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Quiz: Schulordnung Gymnasium Ganderkesee</title>
+<style>
+  :root{
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --primary: #1e4d8b;
+    --primary-dark: #163a68;
+    --correct: #2e7d32;
+    --correct-bg: #e8f5e9;
+    --wrong: #c62828;
+    --wrong-bg: #fdecea;
+    --neutral-border: #d7dde5;
+    --text: #212934;
+    --muted: #667085;
+  }
+  *{box-sizing:border-box;}
+  html, body{
+    height:100%;
+  }
+  body{
+    margin:0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px 16px 40px;
+    -webkit-tap-highlight-color: transparent;
+    display:flex;
+    flex-direction:column;
+    min-height:100%;
+  }
+  .wrap{
+    max-width: 720px;
+    width:100%;
+    margin: 0 auto;
+    display:flex;
+    flex-direction:column;
+    flex:1;
+  }
+  header{
+    text-align:center;
+    margin-bottom: 18px;
+  }
+  header h1{
+    font-size: 1.4rem;
+    color: var(--primary-dark);
+    margin: 0 0 4px;
+  }
+  header p{
+    color: var(--muted);
+    margin:0;
+    font-size: 0.9rem;
+  }
+  #progress-wrap{
+    background: var(--card);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  #progress-bar-outer{
+    flex:1;
+    height: 10px;
+    background: var(--neutral-border);
+    border-radius: 6px;
+    overflow:hidden;
+  }
+  #progress-bar-inner{
+    height:100%;
+    width:0%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+  }
+  #progress-label{
+    font-size: 0.85rem;
+    color: var(--muted);
+    white-space: nowrap;
+    min-width: 62px;
+    text-align:right;
+  }
+  #quiz-body{
+    display:flex;
+    flex-direction:column;
+    flex:1;
+  }
+  .question-card{
+    background: var(--card);
+    border-radius: 16px;
+    padding: 22px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display:none;
+    flex-direction:column;
+    flex:1;
+  }
+  .question-card.active{
+    display:flex;
+  }
+  .q-meta{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    margin-bottom: 8px;
+  }
+  .q-number{
+    font-size: 0.8rem;
+    font-weight:700;
+    color: var(--primary);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .q-diff{
+    font-size: 0.72rem;
+    font-weight:600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    color:#fff;
+  }
+  .diff-leicht{ background:#43a047; }
+  .diff-mittel{ background:#fb8c00; }
+  .diff-schwer{ background:#c62828; }
+
+  .q-text{
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 8px 0 18px;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+  }
+  .option{
+    display:flex;
+    align-items:flex-start;
+    gap: 12px;
+    border: 2px solid var(--neutral-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    background: #fff;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  .option:active{
+    transform: scale(0.99);
+  }
+  .option .letter{
+    flex-shrink:0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--neutral-border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .option .opt-text{
+    padding-top: 2px;
+    line-height: 1.35;
+    font-size: 0.98rem;
+  }
+  .option.disabled{
+    cursor:default;
+  }
+  .option.selected-correct{
+    background: var(--correct-bg);
+    border-color: var(--correct);
+  }
+  .option.selected-correct .letter{
+    background: var(--correct);
+    border-color: var(--correct);
+    color:#fff;
+  }
+  .option.selected-wrong{
+    background: var(--wrong-bg);
+    border-color: var(--wrong);
+  }
+  .option.selected-wrong .letter{
+    background: var(--wrong);
+    border-color: var(--wrong);
+    color:#fff;
+  }
+  .option.reveal-correct{
+    border-color: var(--correct);
+  }
+  .option.reveal-correct .letter{
+    border-color: var(--correct);
+    color: var(--correct);
+  }
+  .feedback{
+    margin-top: 14px;
+    font-size: 0.92rem;
+    font-weight:600;
+    display:none;
+  }
+  .feedback.show{ display:block; }
+  .feedback.fb-correct{ color: var(--correct); }
+  .feedback.fb-wrong{ color: var(--wrong); }
+
+  .nav-row{
+    margin-top: auto;
+    padding-top: 20px;
+    display:flex;
+    justify-content:flex-end;
+  }
+  .next-btn{
+    background: var(--primary);
+    color:#fff;
+    border:none;
+    padding: 14px 30px;
+    font-size: 1rem;
+    font-weight:700;
+    border-radius: 12px;
+    cursor:pointer;
+    opacity: 0;
+    pointer-events:none;
+    transition: opacity 0.2s ease;
+  }
+  .next-btn.visible{
+    opacity: 1;
+    pointer-events:auto;
+  }
+  .next-btn:active{ background: var(--primary-dark); }
+
+  #summary-card{
+    background: var(--card);
+    border-radius: 16px;
+    padding: 28px 22px;
+    text-align:center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display:none;
+  }
+  #summary-card.show{ display:block; }
+  #summary-card h2{
+    color: var(--primary-dark);
+    margin-top:0;
+  }
+  #score-circle{
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: conic-gradient(var(--primary) calc(var(--pct,0)*1%), var(--neutral-border) 0);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin: 18px auto;
+  }
+  #score-circle-inner{
+    width: 104px;
+    height: 104px;
+    background: #fff;
+    border-radius: 50%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  #score-value{
+    font-size: 1.6rem;
+    font-weight:800;
+    color: var(--primary-dark);
+  }
+  #score-total{
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  #score-message{
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  #restart-btn{
+    margin-top: 18px;
+    background: var(--primary);
+    color:#fff;
+    border:none;
+    padding: 13px 28px;
+    font-size: 1rem;
+    font-weight:600;
+    border-radius: 12px;
+    cursor:pointer;
+  }
+  #restart-btn:active{ background: var(--primary-dark); }
+
+  footer{
+    text-align:center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📘 Quiz zur Schulordnung</h1>
+    <p>Gymnasium Ganderkesee – 15 Fragen, jede Frage einmal beantwortbar</p>
+  </header>
+
+  <div id="quiz-body">
+    <div id="progress-wrap">
+      <div id="progress-bar-outer"><div id="progress-bar-inner"></div></div>
+      <div id="progress-label">Frage 1 / 15</div>
+    </div>
+    <div id="questions-container"></div>
+  </div>
+
+  <div id="summary-card">
+    <h2>🎉 Quiz abgeschlossen!</h2>
+    <div id="score-circle" style="--pct:0">
+      <div id="score-circle-inner">
+        <div id="score-value">0</div>
+        <div id="score-total">von 15</div>
+      </div>
+    </div>
+    <div id="score-message"></div>
+    <button id="restart-btn">Quiz erneut starten</button>
+  </div>
+
+  <footer>Erstellt auf Basis der Schulordnung des Gymnasiums Ganderkesee (Stand: Beschluss vom 10.04.2024)</footer>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    diff: "leicht",
+    text: "Was gehört laut Schulordnung dazu, dass jede Schülerin und jeder Schüler zum Gelingen des Unterrichts beiträgt?",
+    options: [
+      "Nur pünktlich zu erscheinen",
+      "Aufmerksamkeit und Bereitschaft zur aktiven Mitarbeit zu zeigen",
+      "Immer als Erster im Raum zu sein",
+      "Die Hausaufgaben eines Mitschülers zu kontrollieren"
+    ],
+    correct: 1
+  },
+  {
+    diff: "mittel",
+    text: "Wie schnell muss sich die Klassen- oder Kurssprecherin bzw. der -sprecher im Sekretariat melden, wenn eine Lehrkraft nicht zum Unterricht erscheint?",
+    options: [
+      "Spätestens 10 Minuten nach Stundenbeginn",
+      "Spätestens 5 Minuten nach Stundenbeginn",
+      "Spätestens 15 Minuten nach Stundenbeginn",
+      "Erst nach Ende der Stunde"
+    ],
+    correct: 0
+  },
+  {
+    diff: "leicht",
+    text: "Wo müssen Kaugummis laut Schulordnung entsorgt werden?",
+    options: [
+      "Unter dem Tisch",
+      "In den Abfallbehältern",
+      "Im Waschbecken",
+      "In der Federmappe"
+    ],
+    correct: 1
+  },
+  {
+    diff: "mittel",
+    text: "Wo dürfen Arbeitsergebnisse und Poster von Schülerinnen und Schülern angebracht werden?",
+    options: [
+      "An den Fensterscheiben",
+      "An den Wänden",
+      "An Pinnwänden und Posterleisten",
+      "An den Klassenzimmertüren"
+    ],
+    correct: 2
+  },
+  {
+    diff: "schwer",
+    text: "Welche Regel gilt in der Schulordnung für das Trinken von Heißgetränken im Unterricht?",
+    options: [
+      "Heißgetränke sind nur in verschließbaren Thermobechern erlaubt",
+      "Heißgetränke sind grundsätzlich verboten",
+      "Heißgetränke dürfen nur in der Pause getrunken werden, aber in jedem Gefäß",
+      "Heißgetränke sind nur in der Oberstufe erlaubt"
+    ],
+    correct: 0
+  },
+  {
+    diff: "schwer",
+    text: "In welchen Stunden dürfen Schülerinnen und Schüler der Klassen 5 bis 10 das Schulgelände während der Unterrichtszeit nicht verlassen?",
+    options: [
+      "Nur während der 1. Stunde",
+      "Ganztägig, ohne jede Ausnahme",
+      "Nur in den großen Pausen",
+      "1. bis 6. und 8. bis 9. Stunde"
+    ],
+    correct: 3
+  },
+  {
+    diff: "mittel",
+    text: "Welches Spiel wird in der Schulordnung ausdrücklich als nicht akzeptabel genannt, weil es zu körperbetont ist?",
+    options: [
+      "Basketball",
+      "Rugby",
+      "Federball",
+      "Tischtennis"
+    ],
+    correct: 1
+  },
+  {
+    diff: "mittel",
+    text: "Warum ist Schneeballwerfen auf dem Schulgelände verboten?",
+    options: [
+      "Wegen der Kälte",
+      "Wegen der Sauberkeit der Kleidung",
+      "Wegen der Gefahr von Augenverletzungen",
+      "Wegen des Lärms"
+    ],
+    correct: 2
+  },
+  {
+    diff: "leicht",
+    text: "Welche Gegenstände dürfen laut Schulordnung ausdrücklich nicht mit in die Schule gebracht werden?",
+    options: [
+      "Messer, Waffen und waffenähnliche Gegenstände, Feuerwerkskörper oder Laser-Pointer",
+      "Regenschirme",
+      "Bücher aus der Bibliothek",
+      "Sportgeräte für den Sportunterricht"
+    ],
+    correct: 0
+  },
+  {
+    diff: "schwer",
+    text: "In welchem Zeitraum kann laut Schulordnung in der Mensa oder zuhause eine warme Mittagsmahlzeit eingenommen werden?",
+    options: [
+      "12:00 – 13:00 Uhr",
+      "14:00 – 15:00 Uhr",
+      "11:00 – 12:00 Uhr",
+      "13:05 – 14:10 Uhr"
+    ],
+    correct: 3
+  },
+  {
+    diff: "mittel",
+    text: "Was ist auch bei Klassenfesten auf dem gesamten Schulgelände verboten?",
+    options: [
+      "Laute Musik",
+      "Die Verwendung von Plastikeinweggeschirr",
+      "Das Verteilen von Geschenken",
+      "Luftballons"
+    ],
+    correct: 1
+  },
+  {
+    diff: "schwer",
+    text: "Wem sind der Aufenthaltsraum im Neubau sowie der Arbeitsraum E5 vorbehalten?",
+    options: [
+      "Allen Schülerinnen und Schülern gleichermaßen",
+      "Nur den Klassen 5 und 6",
+      "Den Oberstufenschülerinnen und -schülern",
+      "Ausschließlich den Lehrkräften"
+    ],
+    correct: 2
+  },
+  {
+    diff: "leicht",
+    text: "Was gilt grundsätzlich für das Smartphone im Unterricht, wenn die Lehrkraft nichts anderes erlaubt hat?",
+    options: [
+      "Es muss ausgeschaltet sein und in der Schultasche verbleiben",
+      "Es darf lautlos auf dem Tisch liegen",
+      "Es darf im Flugmodus genutzt werden",
+      "Es darf zum Musikhören verwendet werden"
+    ],
+    correct: 0
+  },
+  {
+    diff: "schwer",
+    text: "In welchen Bereichen der Schule ist die Nutzung elektronischer Geräte außerhalb des Unterrichts grundsätzlich und ausnahmslos untersagt?",
+    options: [
+      "Auf dem Schulhof",
+      "Im Sekretariat",
+      "Im G-Trakt",
+      "Im A- und B-Trakt inkl. Pausenhalle/Aula sowie in der Cafeteria"
+    ],
+    correct: 3
+  },
+  {
+    diff: "mittel",
+    text: "Wer kann in gravierenden Fällen von Fehlverhalten über einen Unterrichtsausschluss, eine Überweisung in eine Parallelklasse oder einen Schulverweis entscheiden?",
+    options: [
+      "Der Hausmeister",
+      "Die Klassenkonferenz",
+      "Die Erziehungsberechtigten allein",
+      "Die Mitschülerinnen und Mitschüler"
+    ],
+    correct: 1
+  }
+];
+
+const LETTERS = ["A", "B", "C", "D"];
+let score = 0;
+let currentIndex = 0;
+
+const quizBody = document.getElementById('quiz-body');
+const container = document.getElementById('questions-container');
+const progressInner = document.getElementById('progress-bar-inner');
+const progressLabel = document.getElementById('progress-label');
+const summaryCard = document.getElementById('summary-card');
+const restartBtn = document.getElementById('restart-btn');
+
+function buildQuiz(){
+  container.innerHTML = "";
+  QUESTIONS.forEach((q, qIndex) => {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = 'card-' + qIndex;
+    if(qIndex === 0) card.classList.add('active');
+
+    const meta = document.createElement('div');
+    meta.className = 'q-meta';
+    const num = document.createElement('span');
+    num.className = 'q-number';
+    num.textContent = 'Frage ' + (qIndex + 1) + ' / ' + QUESTIONS.length;
+    const diff = document.createElement('span');
+    diff.className = 'q-diff diff-' + q.diff;
+    diff.textContent = q.diff.charAt(0).toUpperCase() + q.diff.slice(1);
+    meta.appendChild(num);
+    meta.appendChild(diff);
+
+    const qText = document.createElement('div');
+    qText.className = 'q-text';
+    qText.textContent = q.text;
+
+    const optionsWrap = document.createElement('div');
+    optionsWrap.className = 'options';
+
+    q.options.forEach((optText, oIndex) => {
+      const opt = document.createElement('div');
+      opt.className = 'option';
+      opt.setAttribute('role', 'button');
+      opt.setAttribute('tabindex', '0');
+      opt.dataset.qIndex = qIndex;
+      opt.dataset.oIndex = oIndex;
+
+      const letter = document.createElement('div');
+      letter.className = 'letter';
+      letter.textContent = LETTERS[oIndex];
+
+      const txt = document.createElement('div');
+      txt.className = 'opt-text';
+      txt.textContent = optText;
+
+      opt.appendChild(letter);
+      opt.appendChild(txt);
+      opt.addEventListener('click', onOptionClick);
+      opt.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          onOptionClick.call(opt, e);
+        }
+      });
+
+      optionsWrap.appendChild(opt);
+    });
+
+    const feedback = document.createElement('div');
+    feedback.className = 'feedback';
+    feedback.id = 'feedback-' + qIndex;
+
+    const navRow = document.createElement('div');
+    navRow.className = 'nav-row';
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'next-btn';
+    nextBtn.id = 'next-' + qIndex;
+    nextBtn.textContent = (qIndex === QUESTIONS.length - 1) ? 'Ergebnis anzeigen' : 'Weiter →';
+    nextBtn.addEventListener('click', () => goToQuestion(qIndex + 1));
+    navRow.appendChild(nextBtn);
+
+    card.appendChild(meta);
+    card.appendChild(qText);
+    card.appendChild(optionsWrap);
+    card.appendChild(feedback);
+    card.appendChild(navRow);
+    container.appendChild(card);
+  });
+  updateProgress();
+}
+
+function onOptionClick(e){
+  const opt = e.currentTarget || this;
+  const qIndex = parseInt(opt.dataset.qIndex, 10);
+  const oIndex = parseInt(opt.dataset.oIndex, 10);
+  const card = document.getElementById('card-' + qIndex);
+
+  if(card.dataset.answered === 'true') return; // jede Frage nur einmal beantwortbar
+  card.dataset.answered = 'true';
+
+  const allOptions = card.querySelectorAll('.option');
+  const question = QUESTIONS[qIndex];
+  const isCorrect = oIndex === question.correct;
+
+  allOptions.forEach(o => {
+    o.classList.add('disabled');
+    o.removeEventListener('click', onOptionClick);
+    const oi = parseInt(o.dataset.oIndex, 10);
+    if(oi === question.correct){
+      o.classList.add(isCorrect && oi === oIndex ? 'selected-correct' : 'reveal-correct');
+    }
+    if(oi === oIndex && !isCorrect){
+      o.classList.add('selected-wrong');
+    }
+  });
+
+  const feedback = document.getElementById('feedback-' + qIndex);
+  feedback.classList.add('show');
+  if(isCorrect){
+    score++;
+    feedback.classList.add('fb-correct');
+    feedback.textContent = '✔ Richtig!';
+  } else {
+    feedback.classList.add('fb-wrong');
+    feedback.textContent = '✘ Leider falsch. Richtige Antwort: ' + LETTERS[question.correct] + ') ' + question.options[question.correct];
+  }
+
+  document.getElementById('next-' + qIndex).classList.add('visible');
+}
+
+function goToQuestion(index){
+  const currentCard = document.getElementById('card-' + currentIndex);
+  currentCard.classList.remove('active');
+
+  if(index >= QUESTIONS.length){
+    quizBody.style.display = 'none';
+    showSummary();
+    return;
+  }
+
+  currentIndex = index;
+  const nextCard = document.getElementById('card-' + currentIndex);
+  nextCard.classList.add('active');
+  updateProgress();
+  window.scrollTo({top: 0, behavior:'smooth'});
+}
+
+function updateProgress(){
+  const pct = Math.round(((currentIndex) / QUESTIONS.length) * 100);
+  progressInner.style.width = pct + '%';
+  progressLabel.textContent = 'Frage ' + (currentIndex + 1) + ' / ' + QUESTIONS.length;
+}
+
+function showSummary(){
+  const pct = Math.round((score / QUESTIONS.length) * 100);
+  document.getElementById('score-circle').style.setProperty('--pct', pct);
+  document.getElementById('score-value').textContent = score;
+
+  let message = '';
+  if(pct === 100){
+    message = 'Perfekt! Du kennst die Schulordnung in- und auswendig. 🏆';
+  } else if(pct >= 80){
+    message = 'Sehr gut! Du kennst die Schulordnung wirklich gut. 👏';
+  } else if(pct >= 60){
+    message = 'Gut gemacht – ein Blick in die Schulordnung schadet trotzdem nicht. 🙂';
+  } else if(pct >= 40){
+    message = 'Da geht noch mehr – lies die Schulordnung noch einmal in Ruhe durch.';
+  } else {
+    message = 'Zeit, die Schulordnung genauer kennenzulernen! 📖';
+  }
+  document.getElementById('score-message').textContent = message;
+
+  summaryCard.classList.add('show');
+  window.scrollTo({top: 0, behavior:'smooth'});
+}
+
+function resetQuiz(){
+  score = 0;
+  currentIndex = 0;
+  summaryCard.classList.remove('show');
+  quizBody.style.display = 'flex';
+  buildQuiz();
+  window.scrollTo({top: 0, behavior:'smooth'});
+}
+
+restartBtn.addEventListener('click', resetQuiz);
+
+buildQuiz();
+</script>
+</body>
+</html>

@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Ähnlichkeit-Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d2138;
+    --bg-2:#0a1a2c;
+    --panel:#153355;
+    --panel-2:#1c4066;
+    --grid:rgba(94,234,212,0.07);
+    --grid-strong:rgba(94,234,212,0.14);
+    --accent:#5eead4;
+    --accent-dim:rgba(94,234,212,0.18);
+    --warm:#ffc857;
+    --wrong:#ff6b6b;
+    --wrong-dim:rgba(255,107,107,0.16);
+    --text:#f3f8f6;
+    --text-dim:#9fb8cc;
+    --radius:20px;
+    --radius-sm:12px;
+    --font-display:'Space Grotesk', 'Futura', 'Trebuchet MS', sans-serif;
+    --font-body:'Inter', -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    font-family:var(--font-body);
+    color:var(--text);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(94,234,212,0.10), transparent 45%),
+      radial-gradient(circle at 88% 92%, rgba(255,200,87,0.08), transparent 40%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    min-height:100vh;
+    overflow-x:hidden;
+    touch-action:manipulation;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  /* Blueprint grid background */
+  .grid-bg{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:34px 34px;
+    mask-image:radial-gradient(ellipse at 50% 20%, black 55%, transparent 90%);
+  }
+  .compass{
+    position:fixed; z-index:0; pointer-events:none; opacity:.5;
+  }
+  .compass svg{width:100%;height:100%;}
+
+  #app{
+    position:relative; z-index:1;
+    max-width:640px; margin:0 auto;
+    min-height:100vh;
+    display:flex; flex-direction:column;
+    padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  }
+
+  /* HEADER */
+  header{ padding-bottom:14px; }
+  .eyebrow{
+    font-family:var(--font-display); font-size:12px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--accent); font-weight:600;
+  }
+  h1{
+    font-family:var(--font-display); font-weight:700;
+    font-size:clamp(26px,6vw,34px); margin:4px 0 2px; letter-spacing:-0.01em;
+  }
+  .sub{ color:var(--text-dim); font-size:14.5px; line-height:1.5; margin:0; }
+
+  /* PROGRESS: nested similar triangles */
+  .progress-row{
+    display:flex; align-items:flex-end; gap:5px; margin:22px 0 4px;
+    height:34px;
+  }
+  .tri-wrap{ flex:1; display:flex; align-items:flex-end; justify-content:center; height:100%; }
+  .tri-wrap svg{ display:block; transition:transform .25s ease; }
+  .tri-wrap.current svg{ animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.12);} }
+  .progress-caption{
+    font-size:12px; color:var(--text-dim); font-family:var(--font-display);
+    letter-spacing:.04em; margin-bottom:10px;
+  }
+
+  /* MAIN STAGE */
+  main{ flex:1; display:flex; flex-direction:column; }
+  .card{
+    background:linear-gradient(165deg, var(--panel) 0%, var(--panel-2) 130%);
+    border:1px solid rgba(94,234,212,0.12);
+    border-radius:var(--radius);
+    padding:26px 22px 22px;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,0.55);
+    flex:1;
+    display:flex; flex-direction:column;
+    animation:fadeIn .35s ease;
+  }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  .type-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--font-display); font-size:11.5px; font-weight:600;
+    letter-spacing:.08em; text-transform:uppercase;
+    color:var(--bg); background:var(--accent);
+    padding:5px 11px; border-radius:100px; align-self:flex-start;
+  }
+  .q-index{ color:var(--text-dim); font-size:13px; margin-top:12px; font-family:var(--font-display); }
+  .q-prompt{
+    font-size:clamp(18px,4.6vw,21px); font-weight:600; line-height:1.4;
+    margin:6px 0 18px; font-family:var(--font-body);
+  }
+
+  /* shape visuals */
+  .shape-box{
+    background:rgba(0,0,0,0.18);
+    border:1px dashed rgba(94,234,212,0.25);
+    border-radius:14px;
+    padding:10px;
+    margin-bottom:18px;
+  }
+  .shape-box svg{ display:block; width:100%; height:auto; }
+  .shape-caption{ text-align:center; font-size:12px; color:var(--text-dim); margin-top:2px; }
+
+  /* options list (MC + TF) */
+  .options{ display:flex; flex-direction:column; gap:10px; }
+  .opt{
+    text-align:left;
+    background:rgba(255,255,255,0.03);
+    border:1.5px solid rgba(159,184,204,0.25);
+    color:var(--text);
+    border-radius:var(--radius-sm);
+    padding:14px 16px;
+    font-size:15.5px; font-family:var(--font-body); font-weight:500;
+    cursor:pointer;
+    min-height:48px;
+    display:flex; align-items:center; gap:10px;
+    transition:border-color .15s, background .15s, transform .1s;
+  }
+  .opt:active{ transform:scale(0.98); }
+  .opt.correct{ border-color:var(--accent); background:var(--accent-dim); }
+  .opt.wrong{ border-color:var(--wrong); background:var(--wrong-dim); }
+  .opt.disabled{ pointer-events:none; opacity:.55; }
+  .opt.disabled.correct, .opt.disabled.wrong{ opacity:1; }
+  .opt-letter{
+    font-family:var(--font-display); font-weight:700; font-size:13px;
+    width:24px; height:24px; border-radius:7px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(94,234,212,0.14); color:var(--accent);
+  }
+
+  /* True/False big buttons */
+  .tf-row{ display:flex; gap:12px; }
+  .tf-btn{
+    flex:1; padding:20px 10px; border-radius:var(--radius-sm);
+    font-family:var(--font-display); font-weight:700; font-size:17px;
+    border:1.5px solid rgba(159,184,204,0.25);
+    background:rgba(255,255,255,0.03); color:var(--text);
+    cursor:pointer; min-height:64px;
+    transition:border-color .15s, background .15s, transform .1s;
+  }
+  .tf-btn:active{ transform:scale(0.97); }
+  .tf-btn.correct{ border-color:var(--accent); background:var(--accent-dim); color:var(--accent); }
+  .tf-btn.wrong{ border-color:var(--wrong); background:var(--wrong-dim); color:var(--wrong); }
+  .tf-btn.disabled{ pointer-events:none; }
+
+  /* image select grid */
+  .img-grid{ display:grid; grid-template-columns:1fr; gap:12px; }
+  .img-opt{
+    border:1.5px solid rgba(159,184,204,0.25); border-radius:var(--radius-sm);
+    background:rgba(255,255,255,0.03); padding:8px; cursor:pointer;
+    transition:border-color .15s, background .15s, transform .1s;
+  }
+  .img-opt:active{ transform:scale(0.98); }
+  .img-opt svg{ display:block; width:100%; height:auto; }
+  .img-opt.correct{ border-color:var(--accent); background:var(--accent-dim); }
+  .img-opt.wrong{ border-color:var(--wrong); background:var(--wrong-dim); }
+  .img-opt.disabled{ pointer-events:none; }
+
+  /* sort question */
+  .sort-instructions{ font-size:13px; color:var(--text-dim); margin-bottom:10px; }
+  .sort-items{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+  .sort-item{
+    border:1.5px solid rgba(159,184,204,0.25); border-radius:var(--radius-sm);
+    background:rgba(255,255,255,0.03); padding:10px;
+    display:flex; align-items:center; gap:12px; cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .sort-item.selected{ border-color:var(--warm); background:rgba(255,200,87,0.12); }
+  .sort-item.done-correct{ border-color:var(--accent); background:var(--accent-dim); pointer-events:none; }
+  .sort-item.done-wrong{ border-color:var(--wrong); background:var(--wrong-dim); pointer-events:none; }
+  .sort-item svg{ width:96px; height:64px; flex-shrink:0; }
+  .sort-item .label{ font-size:13.5px; color:var(--text-dim); }
+  .sort-item .tag{
+    margin-left:auto; font-family:var(--font-display); font-size:11px; font-weight:700;
+    padding:4px 8px; border-radius:100px; background:rgba(255,255,255,0.08);
+  }
+  .sort-buckets{ display:flex; gap:10px; }
+  .bucket-btn{
+    flex:1; padding:14px; border-radius:var(--radius-sm);
+    font-family:var(--font-display); font-weight:700; font-size:14px;
+    border:1.5px dashed rgba(159,184,204,0.3);
+    background:transparent; color:var(--text-dim);
+    cursor:pointer; min-height:50px;
+  }
+  .bucket-btn.active-hint{ border-color:var(--warm); color:var(--warm); }
+  .bucket-btn:disabled{ opacity:.4; }
+
+  /* feedback panel */
+  .feedback{
+    margin-top:16px; padding:14px 16px; border-radius:var(--radius-sm);
+    font-size:14px; line-height:1.5; display:none;
+    border:1px solid transparent;
+  }
+  .feedback.show{ display:block; animation:fadeIn .25s ease; }
+  .feedback.ok{ background:var(--accent-dim); border-color:rgba(94,234,212,0.4); color:var(--text); }
+  .feedback.bad{ background:var(--wrong-dim); border-color:rgba(255,107,107,0.4); color:var(--text); }
+  .feedback b{ font-family:var(--font-display); }
+
+  .spacer{ flex:1; }
+  .next-btn{
+    margin-top:18px; width:100%; padding:16px; border:none; border-radius:var(--radius-sm);
+    background:var(--accent); color:#052821; font-family:var(--font-display);
+    font-weight:700; font-size:16px; cursor:pointer; min-height:54px;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .1s;
+  }
+  .next-btn.show{ opacity:1; pointer-events:auto; }
+  .next-btn:active{ transform:scale(0.98); }
+
+  /* START SCREEN */
+  .start-screen, .end-screen{
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    justify-content:center; flex:1; gap:18px; padding:20px 6px;
+  }
+  .hero-shapes{ width:min(260px, 70vw); }
+  .start-title{ font-family:var(--font-display); font-weight:700; font-size:clamp(28px,7vw,38px); margin:0; letter-spacing:-0.01em; }
+  .start-text{ color:var(--text-dim); font-size:15px; max-width:420px; line-height:1.6; }
+  .facts{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:6px 0; }
+  .fact{
+    font-family:var(--font-display); font-size:12px; font-weight:600;
+    background:rgba(94,234,212,0.1); color:var(--accent);
+    padding:7px 12px; border-radius:100px; border:1px solid rgba(94,234,212,0.25);
+  }
+  .primary-btn{
+    padding:17px 36px; border:none; border-radius:100px;
+    background:var(--accent); color:#052821; font-family:var(--font-display);
+    font-weight:700; font-size:16.5px; cursor:pointer; min-height:56px;
+    box-shadow:0 14px 30px -12px rgba(94,234,212,0.5);
+  }
+  .primary-btn:active{ transform:scale(0.97); }
+  .ghost-btn{
+    padding:14px 28px; border-radius:100px; border:1.5px solid rgba(159,184,204,0.3);
+    background:transparent; color:var(--text); font-family:var(--font-display);
+    font-weight:600; font-size:14.5px; cursor:pointer; min-height:48px;
+  }
+
+  /* END SCREEN */
+  .score-ring{ position:relative; width:180px; height:180px; }
+  .score-ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .score-ring .bg-ring{ fill:none; stroke:rgba(255,255,255,0.08); stroke-width:12; }
+  .score-ring .fg-ring{ fill:none; stroke:var(--accent); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset 1s ease; }
+  .score-ring .num{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+  }
+  .score-ring .num .pts{ font-family:var(--font-display); font-weight:700; font-size:30px; }
+  .score-ring .num .of{ font-size:12px; color:var(--text-dim); }
+  .end-msg{ font-size:16px; max-width:420px; line-height:1.55; }
+  .end-msg b{ color:var(--accent); }
+  .breakdown{
+    display:flex; gap:8px; margin-top:4px; flex-wrap:wrap; justify-content:center;
+  }
+  .chip{
+    font-size:11.5px; font-family:var(--font-display); font-weight:600;
+    padding:6px 10px; border-radius:100px; border:1px solid rgba(159,184,204,0.25); color:var(--text-dim);
+  }
+  .chip.ok{ border-color:rgba(94,234,212,0.4); color:var(--accent); }
+  .chip.bad{ border-color:rgba(255,107,107,0.4); color:var(--wrong); }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="compass" style="top:-40px; right:-50px; width:220px; height:220px;">
+  <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" fill="none" stroke="#5eead4" stroke-opacity="0.14" stroke-width="1.5"/><circle cx="100" cy="100" r="60" fill="none" stroke="#5eead4" stroke-opacity="0.12" stroke-width="1.5"/><line x1="100" y1="6" x2="100" y2="194" stroke="#5eead4" stroke-opacity="0.08"/><line x1="6" y1="100" x2="194" y2="100" stroke="#5eead4" stroke-opacity="0.08"/></svg>
+</div>
+<div class="compass" style="bottom:-30px; left:-60px; width:200px; height:200px;">
+  <svg viewBox="0 0 200 200"><polygon points="20,180 20,40 160,180" fill="none" stroke="#ffc857" stroke-opacity="0.10" stroke-width="1.5"/><polygon points="20,180 20,100 90,180" fill="none" stroke="#ffc857" stroke-opacity="0.14" stroke-width="1.5"/></svg>
+</div>
+
+<div id="app">
+
+  <!-- START SCREEN -->
+  <section class="start-screen" id="startScreen">
+    <div class="hero-shapes">
+      <svg viewBox="0 0 260 140">
+        <polygon points="20,120 20,60 80,120" fill="none" stroke="#5eead4" stroke-width="3"/>
+        <polygon points="100,120 100,20 220,120" fill="none" stroke="#5eead4" stroke-width="3"/>
+        <line x1="20" y1="60" x2="100" y2="20" stroke="#ffc857" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <line x1="20" y1="120" x2="100" y2="120" stroke="#ffc857" stroke-width="1.5" stroke-dasharray="4 4"/>
+      </svg>
+    </div>
+    <p class="eyebrow">Mathematik · Klasse 9/10</p>
+    <h1 class="start-title">Ähnlichkeit-Quiz</h1>
+    <p class="start-text">Erkennst du ähnliche Figuren – und weißt du, warum sie ähnlich sind? Zehn Aufgaben, jede zählt nur einmal. Am Ende siehst du deine Punktzahl.</p>
+    <div class="facts">
+      <span class="fact">10 Aufgaben</span>
+      <span class="fact">4 Aufgabentypen</span>
+      <span class="fact">iPad-optimiert</span>
+    </div>
+    <button class="primary-btn" id="startBtn">Quiz starten</button>
+  </section>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quizScreen" class="hidden" style="display:flex; flex-direction:column; flex:1;">
+    <header>
+      <p class="eyebrow">Mathematik · Ähnlichkeit</p>
+      <h1>Ähnlichkeit-Quiz</h1>
+      <p class="sub">Wähle deine Antwort – jede Aufgabe zählt nur einmal.</p>
+      <div class="progress-row" id="progressRow"></div>
+      <div class="progress-caption" id="progressCaption">Aufgabe 1 von 10</div>
+    </header>
+    <main>
+      <div class="card" id="card">
+        <!-- injected per question -->
+      </div>
+    </main>
+  </div>
+
+  <!-- END SCREEN -->
+  <section class="end-screen hidden" id="endScreen">
+    <p class="eyebrow">Ergebnis</p>
+    <div class="score-ring">
+      <svg viewBox="0 0 120 120">
+        <circle class="bg-ring" cx="60" cy="60" r="52"></circle>
+        <circle class="fg-ring" id="fgRing" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+      </svg>
+      <div class="num"><span class="pts" id="scoreNum">0</span><span class="of" id="scoreOf">von 13 Punkten</span></div>
+    </div>
+    <h1 class="start-title" id="endTitle">Stark gemacht!</h1>
+    <p class="end-msg" id="endMsg"></p>
+    <div class="breakdown" id="breakdown"></div>
+    <button class="primary-btn" id="restartBtn">Nochmal spielen</button>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- SVG shape helpers ----------
+  const svgOpen = (vb) => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg">`;
+  const CLOSE = `</svg>`;
+  const S = "#5eead4"; // stroke color for neutral shapes
+
+  const shapes = {
+    twoSquares: `${svgOpen("0 0 220 130")}
+        <rect x="18" y="66" width="42" height="42" fill="none" stroke="${S}" stroke-width="4"/>
+        <rect x="100" y="20" width="88" height="88" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`,
+    rectVsSquare: `${svgOpen("0 0 220 130")}
+        <rect x="14" y="70" width="80" height="34" fill="none" stroke="${S}" stroke-width="4"/>
+        <rect x="128" y="30" width="76" height="76" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`,
+    twoCircles: `${svgOpen("0 0 220 130")}
+        <circle cx="45" cy="90" r="20" fill="none" stroke="${S}" stroke-width="4"/>
+        <circle cx="150" cy="65" r="45" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`,
+    circleEllipse: `${svgOpen("0 0 220 130")}
+        <circle cx="50" cy="65" r="32" fill="none" stroke="${S}" stroke-width="4"/>
+        <ellipse cx="155" cy="65" rx="55" ry="24" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`,
+    twoEllipsesSameRatio: `${svgOpen("0 0 220 130")}
+        <ellipse cx="48" cy="90" rx="30" ry="15" fill="none" stroke="${S}" stroke-width="4"/>
+        <ellipse cx="150" cy="65" rx="52" ry="26" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`,
+    twoTriangles: `${svgOpen("0 0 220 130")}
+        <polygon points="20,110 45,65 70,110" fill="none" stroke="${S}" stroke-width="4"/>
+        <polygon points="110,115 160,25 210,115" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`,
+    rhombusVsParallelogram: `${svgOpen("0 0 220 130")}
+        <polygon points="45,20 75,65 45,110 15,65" fill="none" stroke="${S}" stroke-width="4"/>
+        <polygon points="120,105 150,105 195,25 165,25" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`,
+    twoPentagons: `${svgOpen("0 0 220 130")}
+        <polygon points="40,55 55,40 70,55 64,75 46,75" fill="none" stroke="${S}" stroke-width="4"/>
+        <polygon points="150,20 180,45 168,85 132,85 120,45" fill="none" stroke="${S}" stroke-width="4"/>
+      ${CLOSE}`
+  };
+
+  // ---------- Quiz data ----------
+  // types: mc | tf | imgselect | sort
+  const questions = [
+    {
+      type:"mc",
+      badge:"Multiple Choice",
+      prompt:"Damit zwei Figuren zueinander ähnlich sind, müssen sie …",
+      options:[
+        "den gleichen Flächeninhalt haben",
+        "in allen Winkeln übereinstimmen und in den Seitenlängen proportional sein",
+        "die gleiche Farbe und Lage haben",
+        "den gleichen Umfang haben"
+      ],
+      correct:1,
+      points:1,
+      explain:"Ähnlich heißt: gleiche Winkel und Seiten im gleichen Verhältnis – nur die Größe darf sich unterscheiden."
+    },
+    {
+      type:"tf",
+      badge:"Wahr oder falsch",
+      prompt:"Zwei Quadrate mit unterschiedlicher Seitenlänge sind zueinander ähnlich.",
+      shape:shapes.twoSquares,
+      caption:"Quadrat (Seite 3) und Quadrat (Seite 6)",
+      correct:true,
+      points:1,
+      explain:"Wahr. Jedes Quadrat hat vier rechte Winkel und gleich lange Seiten – das Seitenverhältnis stimmt also immer überein."
+    },
+    {
+      type:"imgselect",
+      badge:"Bild erkennen",
+      prompt:"Welches Figurenpaar ist NICHT ähnlich zueinander?",
+      images:[
+        {svg:shapes.twoCircles, label:"Zwei Kreise", correct:false},
+        {svg:shapes.circleEllipse, label:"Kreis und Ellipse", correct:true},
+        {svg:shapes.twoEllipsesSameRatio, label:"Zwei Ellipsen (gleiches Verhältnis)", correct:false}
+      ],
+      points:1,
+      explain:"Ein Kreis und eine Ellipse haben eine unterschiedliche Form – eine Streckung allein macht aus einem Kreis keine Ellipse."
+    },
+    {
+      type:"sort",
+      badge:"Zuordnen",
+      prompt:"Sortiere die Figurenpaare: ähnlich oder nicht ähnlich?",
+      items:[
+        {svg:shapes.twoTriangles, label:"Zwei gleichseitige Dreiecke", correct:true},
+        {svg:shapes.rhombusVsParallelogram, label:"Raute und allgemeines Parallelogramm", correct:false},
+        {svg:shapes.rectVsSquare, label:"Rechteck und Quadrat", correct:false},
+        {svg:shapes.twoPentagons, label:"Zwei regelmäßige Fünfecke", correct:true}
+      ],
+      pointsPerItem:1,
+      explain:"Gleichseitige Dreiecke und regelmäßige Vielecke gleicher Eckenzahl sind immer ähnlich. Eine Raute hat vier gleich lange Seiten, ein allgemeines Parallelogramm meist nicht – deshalb i. Allg. nicht ähnlich. Rechteck und Quadrat haben unterschiedliche Seitenverhältnisse."
+    },
+    {
+      type:"mc",
+      badge:"Multiple Choice",
+      prompt:"Zwei beliebige gleichseitige Dreiecke unterschiedlicher Größe sind …",
+      options:[
+        "immer ähnlich zueinander",
+        "nie ähnlich zueinander",
+        "nur ähnlich, wenn sie gleich groß sind",
+        "nur ähnlich, wenn sie die gleiche Farbe haben"
+      ],
+      correct:0,
+      points:1,
+      explain:"Jedes gleichseitige Dreieck hat drei 60°-Winkel. Gleiche Winkel + proportionale Seiten → immer ähnlich."
+    },
+    {
+      type:"tf",
+      badge:"Wahr oder falsch",
+      prompt:"Jede zu einer Raute ähnliche Figur ist wieder eine Raute.",
+      correct:true,
+      points:1,
+      explain:"Wahr. Ähnlichkeit erhält alle Winkel und das Verhältnis der Seiten zueinander – bleiben alle vier Seiten gleich lang, bleibt die Figur eine Raute."
+    },
+    {
+      type:"tf",
+      badge:"Wahr oder falsch",
+      prompt:"Zwei beliebige Parallelogramme sind stets ähnlich zueinander.",
+      correct:false,
+      points:1,
+      explain:"Falsch. Parallelogramme können unterschiedliche Winkel und Seitenverhältnisse haben – dann sind sie nicht ähnlich."
+    },
+    {
+      type:"mc",
+      badge:"Multiple Choice",
+      prompt:"Ein Rechteck mit 12 cm² Flächeninhalt – ist es automatisch ähnlich zu einem Rechteck mit 48 cm²?",
+      options:[
+        "Ja, weil 48 = 4 · 12 ist",
+        "Nein, der Flächeninhalt allein legt das Seitenverhältnis nicht fest",
+        "Ja, weil beide Flächen durch 12 teilbar sind",
+        "Nein, weil 48 keine Quadratzahl ist"
+      ],
+      correct:1,
+      points:1,
+      explain:"Der Flächeninhalt sagt nichts über die Form aus. Ein 2×6-Rechteck (12 cm²) und ein 4×12-Rechteck (48 cm²) sind ähnlich, ein 2×6-Rechteck und ein 6×8-Rechteck (48 cm²) aber nicht."
+    },
+    {
+      type:"tf",
+      badge:"Wahr oder falsch",
+      prompt:"Wenn Dreieck ABC ähnlich zu DEF ist und DEF ähnlich zu GHI ist, dann ist auch ABC ähnlich zu GHI.",
+      correct:true,
+      points:1,
+      explain:"Wahr – Ähnlichkeit ist transitiv. Gleiche Winkel und Seitenverhältnisse übertragen sich über die Kette hinweg."
+    },
+    {
+      type:"mc",
+      badge:"Multiple Choice",
+      prompt:"Eine Figur wird mit dem Streckfaktor k = 3 vergrößert. Um welchen Faktor wächst der Flächeninhalt?",
+      options:["3", "6", "9", "12"],
+      correct:2,
+      points:1,
+      explain:"Der Flächeninhalt wächst mit k² — hier also 3² = 9."
+    }
+  ];
+
+  // ---------- State ----------
+  let current = 0;
+  let score = 0;
+  const maxScore = questions.reduce((s,q)=> s + (q.type==="sort" ? q.items.length*q.pointsPerItem : q.points), 0);
+  const results = []; // {correct:boolean, partial?}
+  let answered = false;
+
+  // ---------- DOM refs ----------
+  const startScreen = document.getElementById("startScreen");
+  const quizScreen = document.getElementById("quizScreen");
+  const endScreen = document.getElementById("endScreen");
+  const card = document.getElementById("card");
+  const progressRow = document.getElementById("progressRow");
+  const progressCaption = document.getElementById("progressCaption");
+
+  // build progress triangle markers (scaled sizes = similarity motif)
+  function buildProgress(){
+    progressRow.innerHTML = "";
+    questions.forEach((_, i) => {
+      const size = 14 + i * 2; // growing similar triangles
+      const wrap = document.createElement("div");
+      wrap.className = "tri-wrap";
+      wrap.id = "tri-" + i;
+      wrap.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24">
+          <polygon points="12,3 21,21 3,21" fill="none" stroke="rgba(159,184,204,0.35)" stroke-width="2.5" id="poly-${i}"/>
+        </svg>`;
+      progressRow.appendChild(wrap);
+    });
+  }
+  buildProgress();
+
+  function updateProgressMarker(i, state){
+    const poly = document.getElementById("poly-" + i);
+    if(!poly) return;
+    if(state === "correct"){ poly.setAttribute("stroke", "#5eead4"); poly.setAttribute("fill","rgba(94,234,212,0.35)"); }
+    else if(state === "wrong"){ poly.setAttribute("stroke", "#ff6b6b"); poly.setAttribute("fill","rgba(255,107,107,0.3)"); }
+    else if(state === "partial"){ poly.setAttribute("stroke", "#ffc857"); poly.setAttribute("fill","rgba(255,200,87,0.3)"); }
+  }
+  function setCurrentMarker(i){
+    document.querySelectorAll(".tri-wrap").forEach(el=>el.classList.remove("current"));
+    const el = document.getElementById("tri-"+i);
+    if(el) el.classList.add("current");
+  }
+
+  // ---------- Render ----------
+  function renderQuestion(){
+    answered = false;
+    const q = questions[current];
+    progressCaption.textContent = `Aufgabe ${current+1} von ${questions.length}`;
+    setCurrentMarker(current);
+
+    let html = `<span class="type-badge">${q.badge}</span>
+      <div class="q-index">Frage ${current+1}</div>
+      <div class="q-prompt">${q.prompt}</div>`;
+
+    if(q.shape){
+      html += `<div class="shape-box">${q.shape}</div>`;
+      if(q.caption) html += `<div class="shape-caption">${q.caption}</div>`;
+    }
+
+    if(q.type === "mc"){
+      html += `<div class="options" id="optWrap">`;
+      const letters = ["A","B","C","D"];
+      q.options.forEach((opt, i) => {
+        html += `<button class="opt" data-i="${i}"><span class="opt-letter">${letters[i]}</span><span>${opt}</span></button>`;
+      });
+      html += `</div>`;
+    } else if(q.type === "tf"){
+      html += `<div class="tf-row" id="optWrap">
+        <button class="tf-btn" data-val="true">Wahr</button>
+        <button class="tf-btn" data-val="false">Falsch</button>
+      </div>`;
+    } else if(q.type === "imgselect"){
+      html += `<div class="img-grid" id="optWrap">`;
+      q.images.forEach((img, i) => {
+        html += `<button class="img-opt" data-i="${i}">${img.svg}<div class="shape-caption">${img.label}</div></button>`;
+      });
+      html += `</div>`;
+    } else if(q.type === "sort"){
+      html += `<div class="sort-instructions">Tippe eine Karte an, dann wähle die passende Kategorie.</div>
+        <div class="sort-items" id="sortItems">`;
+      q.items.forEach((item, i) => {
+        html += `<div class="sort-item" data-i="${i}">${item.svg}<div class="label">${item.label}</div><div class="tag" id="tag-${i}"></div></div>`;
+      });
+      html += `</div>
+        <div class="sort-buckets">
+          <button class="bucket-btn" id="bucketYes" disabled>Ähnlich</button>
+          <button class="bucket-btn" id="bucketNo" disabled>Nicht ähnlich</button>
+        </div>`;
+    }
+
+    html += `<div class="feedback" id="feedback"></div>
+      <div class="spacer"></div>
+      <button class="next-btn" id="nextBtn">${current === questions.length-1 ? "Ergebnis anzeigen" : "Weiter"}</button>`;
+
+    card.innerHTML = html;
+    wireQuestion(q);
+  }
+
+  function showFeedback(isCorrect, text){
+    const fb = document.getElementById("feedback");
+    fb.className = "feedback show " + (isCorrect ? "ok" : "bad");
+    fb.innerHTML = `<b>${isCorrect ? "Richtig! " : "Nicht ganz. "}</b>${text}`;
+  }
+
+  function enableNext(){
+    document.getElementById("nextBtn").classList.add("show");
+  }
+
+  function wireQuestion(q){
+    if(q.type === "mc"){
+      const wrap = document.getElementById("optWrap");
+      wrap.querySelectorAll(".opt").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if(answered) return;
+          answered = true;
+          const i = parseInt(btn.dataset.i, 10);
+          const isCorrect = i === q.correct;
+          wrap.querySelectorAll(".opt").forEach((b2, i2) => {
+            b2.classList.add("disabled");
+            if(i2 === q.correct) b2.classList.add("correct");
+            if(i2 === i && !isCorrect) b2.classList.add("wrong");
+          });
+          if(isCorrect){ score += q.points; results.push(true); updateProgressMarker(current,"correct"); }
+          else { results.push(false); updateProgressMarker(current,"wrong"); }
+          showFeedback(isCorrect, q.explain);
+          enableNext();
+        });
+      });
+    } else if(q.type === "tf"){
+      const wrap = document.getElementById("optWrap");
+      wrap.querySelectorAll(".tf-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if(answered) return;
+          answered = true;
+          const val = btn.dataset.val === "true";
+          const isCorrect = val === q.correct;
+          wrap.querySelectorAll(".tf-btn").forEach(b2 => {
+            b2.classList.add("disabled");
+            const bVal = b2.dataset.val === "true";
+            if(bVal === q.correct) b2.classList.add("correct");
+            if(bVal === val && !isCorrect) b2.classList.add("wrong");
+          });
+          if(isCorrect){ score += q.points; results.push(true); updateProgressMarker(current,"correct"); }
+          else { results.push(false); updateProgressMarker(current,"wrong"); }
+          showFeedback(isCorrect, q.explain);
+          enableNext();
+        });
+      });
+    } else if(q.type === "imgselect"){
+      const wrap = document.getElementById("optWrap");
+      wrap.querySelectorAll(".img-opt").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if(answered) return;
+          answered = true;
+          const i = parseInt(btn.dataset.i, 10);
+          const isCorrect = !!q.images[i].correct;
+          wrap.querySelectorAll(".img-opt").forEach((b2, i2) => {
+            b2.classList.add("disabled");
+            if(q.images[i2].correct) b2.classList.add("correct");
+            else if(i2 === i) b2.classList.add("wrong");
+          });
+          if(isCorrect){ score += q.points; results.push(true); updateProgressMarker(current,"correct"); }
+          else { results.push(false); updateProgressMarker(current,"wrong"); }
+          showFeedback(isCorrect, q.explain);
+          enableNext();
+        });
+      });
+    } else if(q.type === "sort"){
+      let selected = null;
+      let doneCount = 0;
+      let correctCount = 0;
+      const itemsWrap = document.getElementById("sortItems");
+      const bucketYes = document.getElementById("bucketYes");
+      const bucketNo = document.getElementById("bucketNo");
+      bucketYes.disabled = false;
+      bucketNo.disabled = false;
+
+      function selectItem(el){
+        itemsWrap.querySelectorAll(".sort-item").forEach(it => it.classList.remove("selected"));
+        el.classList.add("selected");
+        selected = el;
+      }
+
+      itemsWrap.querySelectorAll(".sort-item").forEach(el => {
+        el.addEventListener("click", () => {
+          if(el.classList.contains("done-correct") || el.classList.contains("done-wrong")) return;
+          selectItem(el);
+        });
+      });
+
+      function placeSelected(guessYes){
+        if(!selected) return;
+        const i = parseInt(selected.dataset.i, 10);
+        const isCorrect = q.items[i].correct === guessYes;
+        const tag = document.getElementById("tag-" + i);
+        tag.textContent = isCorrect ? "✓" : "✕";
+        selected.classList.remove("selected");
+        selected.classList.add(isCorrect ? "done-correct" : "done-wrong");
+        selected = null;
+        doneCount++;
+        if(isCorrect){ correctCount++; score += q.pointsPerItem; }
+        if(doneCount === q.items.length){
+          const allCorrect = correctCount === q.items.length;
+          results.push(allCorrect);
+          updateProgressMarker(current, allCorrect ? "correct" : (correctCount > 0 ? "partial" : "wrong"));
+          showFeedback(allCorrect, q.explain + ` (${correctCount}/${q.items.length} richtig einsortiert)`);
+          bucketYes.disabled = true;
+          bucketNo.disabled = true;
+          enableNext();
+        }
+      }
+
+      bucketYes.addEventListener("click", () => placeSelected(true));
+      bucketNo.addEventListener("click", () => placeSelected(false));
+    }
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      if(current < questions.length - 1){
+        current++;
+        renderQuestion();
+      } else {
+        showEnd();
+      }
+    });
+  }
+
+  // ---------- End screen ----------
+  function showEnd(){
+    quizScreen.classList.add("hidden");
+    endScreen.classList.remove("hidden");
+
+    const pct = Math.round((score / maxScore) * 100);
+    document.getElementById("scoreNum").textContent = score;
+    document.getElementById("scoreOf").textContent = `von ${maxScore} Punkten`;
+
+    const circumference = 2 * Math.PI * 52;
+    const ring = document.getElementById("fgRing");
+    ring.setAttribute("stroke-dasharray", circumference.toFixed(1));
+    requestAnimationFrame(() => {
+      const offset = circumference * (1 - score / maxScore);
+      ring.style.strokeDashoffset = offset.toFixed(1);
+    });
+
+    let title, msg;
+    if(pct >= 90){ title = "Ausgezeichnet!"; msg = `<b>${pct}%</b> — du hast die Ähnlichkeit von Figuren voll im Griff, von der Winkelbedingung bis zur Transitivität.`; }
+    else if(pct >= 70){ title = "Gut gemacht!"; msg = `<b>${pct}%</b> — solide Basis. Schau dir die Aufgaben mit Feedback noch einmal an, um die letzten Lücken zu schließen.`; }
+    else if(pct >= 50){ title = "Auf dem richtigen Weg"; msg = `<b>${pct}%</b> — die Grundidee sitzt schon. Wiederhole, wann Figuren wirklich ähnlich sind: gleiche Winkel + proportionale Seiten.`; }
+    else { title = "Weiter üben lohnt sich"; msg = `<b>${pct}%</b> — schau dir das Thema Ähnlichkeit noch einmal in Ruhe an, besonders die Bedingungen für Dreiecke, Vierecke und Streckfaktoren.`; }
+
+    document.getElementById("endTitle").textContent = title;
+    document.getElementById("endMsg").innerHTML = msg;
+
+    const breakdown = document.getElementById("breakdown");
+    breakdown.innerHTML = "";
+    results.forEach((r, i) => {
+      const chip = document.createElement("span");
+      chip.className = "chip " + (r ? "ok" : "bad");
+      chip.textContent = `Aufgabe ${i+1} ${r ? "✓" : "✕"}`;
+      breakdown.appendChild(chip);
+    });
+  }
+
+  // ---------- Start / Restart ----------
+  document.getElementById("startBtn").addEventListener("click", () => {
+    startScreen.classList.add("hidden");
+    quizScreen.classList.remove("hidden");
+    renderQuestion();
+  });
+
+  document.getElementById("restartBtn").addEventListener("click", () => {
+    current = 0; score = 0; results.length = 0;
+    buildProgress();
+    endScreen.classList.add("hidden");
+    quizScreen.classList.remove("hidden");
+    renderQuestion();
+  });
+
+})();
+</script>
+</body>
+</html>

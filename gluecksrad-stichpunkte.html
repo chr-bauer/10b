@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Stichpunkt-Glücksrad — Politische Partizipation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --stone:#eee6d3;
+    --stone-2:#e2d7bd;
+    --stone-3:#d3c49c;
+    --ink:#211f1a;
+    --ink-soft:#5a5648;
+    --blue-deep:#0e1a2b;
+    --blue:#16283f;
+    --gold:#c8a13a;
+    --gold-soft:#e7d18f;
+    --red:#9c3430;
+    --line:rgba(33,31,26,0.16);
+    --font-display:'Fraunces', serif;
+    --font-body:'Public Sans', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; min-height:100%;
+    background:
+      radial-gradient(120% 90% at 50% -10%, #223a56 0%, #0e1a2b 46%, #0a1420 100%);
+    color:var(--ink);
+    font-family:var(--font-body);
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap{
+    max-width:1180px; margin:0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,40px) 60px;
+  }
+  header{
+    text-align:center; margin-bottom: clamp(22px,4vw,38px); color:var(--gold-soft);
+  }
+  header .eyebrow{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase;
+    color:rgba(231,209,143,.65); margin-bottom:10px;
+  }
+  header h1{
+    font-family:var(--font-display); font-weight:700; font-size:clamp(24px,3.4vw,38px);
+    margin:0 0 8px; color:#fbf3dc; letter-spacing:-.01em;
+  }
+  header p{
+    font-family:var(--font-body); font-size:13.5px; color:rgba(231,209,143,.7); margin:0;
+  }
+
+  .layout{
+    display:grid; grid-template-columns: minmax(320px,560px) 1fr; gap: clamp(20px,3vw,40px);
+    align-items:start;
+  }
+  @media(max-width:920px){ .layout{ grid-template-columns:1fr; } }
+
+  /* ---------- WHEEL ---------- */
+  .wheel-card{
+    background: linear-gradient(180deg, rgba(255,252,244,.06), rgba(255,252,244,.02));
+    border:1px solid rgba(231,209,143,.18);
+    border-radius:6px;
+    padding: clamp(20px,3vw,34px);
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .wheel-stage{
+    position:relative; width:100%; max-width:480px; aspect-ratio:1/1; margin: 6px auto 22px;
+  }
+  .pointer{
+    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+    width:0; height:0; z-index:5;
+    border-left:16px solid transparent; border-right:16px solid transparent;
+    border-top:26px solid var(--gold);
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,.5));
+  }
+  .pointer::after{
+    content:''; position:absolute; top:-26px; left:-16px; width:32px; height:26px;
+  }
+  .wheel-rotor{
+    width:100%; height:100%; border-radius:50%;
+    transform: rotate(0deg);
+    transition: transform 4.4s cubic-bezier(.15,.63,.1,1);
+    box-shadow: 0 0 0 8px var(--blue-deep), 0 0 0 10px rgba(231,209,143,.5), 0 30px 60px -18px rgba(0,0,0,.7);
+  }
+  .wheel-rotor canvas{ width:100%; height:100%; display:block; border-radius:50%; }
+  .hub{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:19%; height:19%; border-radius:50%; z-index:6;
+    background: radial-gradient(circle at 35% 30%, #fbf3dc, var(--gold) 55%, #a37f22 100%);
+    border:3px solid var(--blue-deep);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; -webkit-user-select:none; touch-action:manipulation;
+    box-shadow: 0 6px 14px rgba(0,0,0,.45);
+    transition: transform .15s ease;
+  }
+  .hub:hover{ transform:translate(-50%,-50%) scale(1.05); }
+  .hub:active{ transform:translate(-50%,-50%) scale(.96); }
+  .hub span{
+    font-family:var(--font-display); font-weight:700; font-size:clamp(11px,1.6vw,15px);
+    color:var(--blue-deep); text-transform:uppercase; letter-spacing:.05em; text-align:center; line-height:1.1;
+  }
+  .hub.disabled{ cursor:not-allowed; opacity:.55; }
+
+  .spin-btn{
+    all:unset; cursor:pointer; font-family:var(--font-mono); font-size:12px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--blue-deep); background:var(--gold-soft);
+    padding:12px 30px; border-radius:30px; font-weight:600;
+    box-shadow: 0 8px 20px -6px rgba(0,0,0,.5);
+    transition: background .2s ease, transform .2s ease;
+    touch-action:manipulation; -webkit-user-select:none;
+  }
+  .spin-btn:hover{ background:#fbf3dc; transform:translateY(-1px); }
+  .spin-btn:disabled{ opacity:.4; cursor:not-allowed; transform:none; }
+  .spin-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+
+  .result-panel{
+    margin-top:20px; width:100%; max-width:480px;
+    background: rgba(255,252,244,.95); border-radius:4px; border-top:3px solid var(--gold);
+    padding: 16px 20px; min-height:76px;
+    display:flex; flex-direction:column; justify-content:center;
+    box-shadow: 0 20px 40px -14px rgba(0,0,0,.5);
+  }
+  .result-panel .r-eyebrow{
+    font-family:var(--font-mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--red); margin-bottom:5px;
+  }
+  .result-panel .r-text{
+    font-family:var(--font-display); font-weight:600; font-size:clamp(15px,1.9vw,20px);
+    color:var(--blue-deep); line-height:1.3;
+  }
+  .result-panel.empty .r-text{ color:var(--ink-soft); font-weight:400; font-style:italic; font-size:14px; }
+
+  /* ---------- SIDE PANEL ---------- */
+  .side{
+    display:flex; flex-direction:column; gap:16px;
+  }
+  .panel{
+    background: rgba(255,252,244,.95);
+    border-radius:4px; border-top:3px solid var(--blue);
+    padding: 16px 20px 20px;
+    box-shadow: 0 20px 40px -18px rgba(0,0,0,.5);
+  }
+  .panel h2{
+    font-family:var(--font-display); font-weight:600; font-size:15.5px; margin:0 0 10px; color:var(--blue-deep);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .panel h2 small{
+    font-family:var(--font-mono); font-size:10px; color:var(--ink-soft); font-weight:400; letter-spacing:.04em;
+  }
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-family:var(--font-body); font-size:12.5px; color:var(--ink);
+    padding:8px 0; border-bottom:1px dashed var(--line);
+  }
+  .toggle-row:last-child{ border-bottom:none; }
+  .switch{
+    position:relative; width:44px; height:26px; flex:0 0 auto; touch-action:manipulation;
+  }
+  .switch input{ opacity:0; width:100%; height:100%; margin:0; cursor:pointer; position:relative; z-index:1; }
+  .switch .track{
+    position:absolute; inset:0; background:var(--stone-3); border-radius:20px; transition:background .2s ease;
+  }
+  .switch .thumb{
+    position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+    background:#fff; transition: transform .2s ease; box-shadow:0 1px 3px rgba(0,0,0,.3); pointer-events:none;
+  }
+  .switch input:checked + .track{ background: var(--blue); }
+  .switch input:checked + .track + .thumb{ transform:translateX(18px); }
+  .switch input:focus-visible + .track{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  .btn-row{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .btn-sm{
+    all:unset; cursor:pointer; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em;
+    text-transform:uppercase; padding:8px 14px; border-radius:3px; border:1px solid var(--blue);
+    color:var(--blue); transition: all .2s ease; touch-action:manipulation; -webkit-user-select:none;
+  }
+  .btn-sm:hover{ background:var(--blue); color:#fbf3dc; }
+  .btn-sm.primary{ background:var(--blue); color:#fbf3dc; }
+  .btn-sm.primary:hover{ background:var(--blue-deep); }
+  .btn-sm:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  textarea{
+    width:100%; min-height:220px; resize:vertical;
+    font-family:var(--font-mono); font-size:16px; line-height:1.5; color:var(--ink);
+    border:1px solid var(--line); border-radius:3px; padding:10px 12px;
+    background:#fbf7ec;
+  }
+  textarea:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+  .hint{ font-size:11px; color:var(--ink-soft); margin-top:6px; line-height:1.4; }
+
+  .legend{
+    list-style:none; margin:0; padding:0; max-height:280px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:1px;
+  }
+  .legend li{
+    display:flex; align-items:center; gap:9px; padding:6px 4px; border-radius:3px;
+    font-size:12px; color:var(--ink); transition: background .2s ease, opacity .2s ease;
+  }
+  .legend li .sw{ width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .legend li.used{ opacity:.35; text-decoration:line-through; }
+  .legend li.just-won{ background: rgba(200,161,58,.18); font-weight:600; }
+  .legend::-webkit-scrollbar{ width:5px; }
+  .legend::-webkit-scrollbar-thumb{ background:var(--stone-3); border-radius:4px; }
+
+  .history{
+    list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;
+    max-height:160px; overflow-y:auto;
+  }
+  .history li{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-soft);
+    display:flex; gap:8px; align-items:baseline;
+  }
+  .history li b{ color:var(--blue-deep); font-family:var(--font-body); font-weight:600; }
+  .history-empty{ font-size:11.5px; color:var(--ink-soft); font-style:italic; }
+
+  @media(prefers-reduced-motion: reduce){
+    .wheel-rotor{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Wiederholung zur politischen Partizipation</h1>
+    <p>Rad drehen — Stichpunkt vorlesen — Klasse ergänzt</p>
+  </header>
+
+  <div class="layout">
+    <!-- WHEEL -->
+    <div class="wheel-card">
+      <div class="wheel-stage">
+        <div class="pointer"></div>
+        <div class="wheel-rotor" id="wheelRotor">
+          <canvas id="wheelCanvas" width="900" height="900"></canvas>
+        </div>
+        <div class="hub" id="hub" role="button" tabindex="0" aria-label="Glücksrad drehen">
+          <span>Drehen</span>
+        </div>
+      </div>
+      <button class="spin-btn" id="spinBtn">Rad drehen</button>
+
+      <div class="result-panel empty" id="resultPanel">
+        <div class="r-eyebrow">Ergebnis</div>
+        <div class="r-text" id="resultText">Noch kein Dreh — klicke „Rad drehen"</div>
+      </div>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="side">
+      <div class="panel">
+        <h2>Einstellungen</h2>
+        <div class="toggle-row">
+          <span>Ohne Zurücklegen (jeder Punkt nur 1×)</span>
+          <label class="switch">
+            <input type="checkbox" id="noRepeatToggle" checked>
+            <span class="track"></span><span class="thumb"></span>
+          </label>
+        </div>
+        <div class="btn-row">
+          <button class="btn-sm primary" id="resetBtn">Zurücksetzen</button>
+          <button class="btn-sm" id="editToggleBtn">Liste bearbeiten</button>
+        </div>
+      </div>
+
+      <div class="panel" id="editorPanel" style="display:none;">
+        <h2>Stichpunkte bearbeiten <small>1 Zeile = 1 Segment</small></h2>
+        <textarea id="itemsInput" spellcheck="false"></textarea>
+        <div class="hint">Änderungen mit „Anwenden" übernehmen. Segmentfarben werden automatisch neu verteilt. Leere Zeilen werden ignoriert.</div>
+        <div class="btn-row">
+          <button class="btn-sm primary" id="applyBtn">Anwenden</button>
+          <button class="btn-sm" id="defaultBtn">Standardliste laden</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Alle Stichpunkte <small id="legendCount">0 / 0</small></h2>
+        <ul class="legend" id="legendList"></ul>
+      </div>
+
+      <div class="panel">
+        <h2>Aufruf-Verlauf</h2>
+        <ul class="history" id="historyList">
+          <li class="history-empty">Noch kein Stichpunkt aufgerufen.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   DEFAULT DATA — Stichpunkte aus den 5 Stationen
+   ========================================================= */
+const CATEGORY_COLORS = {
+  recht:   '#16283f',
+  funktion:'#c8a13a',
+  konflikt:'#9c3430',
+  grafik:  '#4c6d8f',
+  klima:   '#3f7a4a',
+};
+
+const PARTY_COLOR = {
+  SPD:'#c23b3b', 'CDU/CSU':'#2b2b2b', 'B90/Grüne':'#4c8f3a', FDP:'#c99c1e', AfD:'#1f5fa8', Linke:'#a83a72'
+};
+
+const DEFAULT_ITEMS = [
+  { text:'Parteien im Bundestag', color: CATEGORY_COLORS.recht },
+  { text:'Rechtliche Stellung von Parteien', color: CATEGORY_COLORS.recht },
+  { text:'Funktionen von Parteien', color: CATEGORY_COLORS.funktion },
+  { text:'Parteienprivileg', color: CATEGORY_COLORS.recht },
+  { text:'Entstehung von Parteien', color: CATEGORY_COLORS.konflikt },
+  { text:'Deutsche Parteien in Konfliktlinien einordnen', color: CATEGORY_COLORS.grafik },
+  { text:'Deutsche Parteien nach klimapolitischer Position einordnen', color: CATEGORY_COLORS.klima },
+  { text:'Partizipationsmöglichkeiten', color: CATEGORY_COLORS.funktion },
+  { text:'Systematiken zur Partizipation', color: PARTY_COLOR.Linke },
+];
+
+const FALLBACK_PALETTE = ['#16283f','#c8a13a','#9c3430','#4c6d8f','#3f7a4a','#a83a72','#1f5fa8','#c99c1e'];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let items = DEFAULT_ITEMS.map(it => ({...it, used:false}));
+let totalRotation = 0;
+let spinning = false;
+let pendingRemoveIdx = -1; // Segment, das erst beim nächsten Dreh vom Rad verschwindet
+
+/* =========================================================
+   DOM refs
+   ========================================================= */
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+const rotor = document.getElementById('wheelRotor');
+const hub = document.getElementById('hub');
+const spinBtn = document.getElementById('spinBtn');
+const resultPanel = document.getElementById('resultPanel');
+const resultText = document.getElementById('resultText');
+const legendList = document.getElementById('legendList');
+const legendCount = document.getElementById('legendCount');
+const historyList = document.getElementById('historyList');
+const noRepeatToggle = document.getElementById('noRepeatToggle');
+const resetBtn = document.getElementById('resetBtn');
+const editToggleBtn = document.getElementById('editToggleBtn');
+const editorPanel = document.getElementById('editorPanel');
+const itemsInput = document.getElementById('itemsInput');
+const applyBtn = document.getElementById('applyBtn');
+const defaultBtn = document.getElementById('defaultBtn');
+
+/* =========================================================
+   DRAW WHEEL
+   ========================================================= */
+function activeItems(){
+  return noRepeatToggle.checked ? items.filter(it => !it.used) : items;
+}
+
+function truncate(text, max){
+  return text.length > max ? text.slice(0, max-1) + '…' : text;
+}
+
+function drawWheel(){
+  const list = activeItems();
+  const n = list.length;
+  const size = canvas.width;
+  const cx = size/2, cy = size/2, r = size/2 - 6;
+  ctx.clearRect(0,0,size,size);
+
+  if(n === 0){
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle = '#3a3730';
+    ctx.fill();
+    ctx.fillStyle = '#e7d18f';
+    ctx.font = '600 34px "Fraunces", serif';
+    ctx.textAlign = 'center'; ctx.textBaseline='middle';
+    ctx.fillText('Alle aufgerufen', cx, cy);
+    return;
+  }
+
+  const anglePerSeg = (Math.PI*2) / n;
+  const maxChars = n <= 8 ? 34 : n <= 16 ? 26 : n <= 24 ? 20 : 16;
+  const fontSize = n <= 8 ? 20 : n <= 16 ? 16 : n <= 24 ? 13 : 11.5;
+
+  list.forEach((item, i) => {
+    const start = -Math.PI/2 + i*anglePerSeg;
+    const end = start + anglePerSeg;
+
+    // segment fill
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,end);
+    ctx.closePath();
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(251,243,220,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // text
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(start + anglePerSeg/2);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fbf3dc';
+    ctx.font = `600 ${fontSize}px "Public Sans", sans-serif`;
+    ctx.fillText(truncate(item.text, maxChars), r - 22, 0);
+    ctx.restore();
+  });
+
+  // center ring
+  ctx.beginPath();
+  ctx.arc(cx,cy, r, 0, Math.PI*2);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#0e1a2b';
+  ctx.stroke();
+}
+
+/* =========================================================
+   LEGEND
+   ========================================================= */
+function renderLegend(highlightIdx = -1){
+  legendList.innerHTML = '';
+  items.forEach((item, idx) => {
+    const li = document.createElement('li');
+    if(item.used && idx !== pendingRemoveIdx) li.classList.add('used');
+    if(idx === highlightIdx) li.classList.add('just-won');
+    li.innerHTML = `<span class="sw" style="background:${item.color}"></span>${item.text}`;
+    legendList.appendChild(li);
+  });
+  const usedCount = items.filter(i=>i.used).length;
+  legendCount.textContent = `${items.length - usedCount} offen / ${items.length}`;
+}
+
+/* =========================================================
+   SPIN LOGIC
+   ========================================================= */
+function pickIndex(){
+  const pool = activeItems();
+  if(pool.length === 0) return -1;
+  const choice = pool[Math.floor(Math.random()*pool.length)];
+  return items.indexOf(choice);
+}
+
+function spin(){
+  if(spinning) return;
+
+  // Segment aus dem vorherigen Dreh jetzt erst sichtbar entfernen
+  if(pendingRemoveIdx !== -1){
+    pendingRemoveIdx = -1;
+    drawWheel();
+    renderLegend();
+  }
+
+  const pool = activeItems();
+  if(pool.length === 0){
+    resultText.textContent = 'Alle Stichpunkte wurden bereits aufgerufen — bitte zurücksetzen.';
+    resultPanel.classList.add('empty');
+    return;
+  }
+  spinning = true;
+  spinBtn.disabled = true;
+  hub.classList.add('disabled');
+
+  const chosenGlobalIdx = pickIndex();
+  const list = activeItems();
+  const chosenPoolIdx = list.indexOf(items[chosenGlobalIdx]);
+  const n = list.length;
+  const anglePerSeg = 360 / n;
+
+  // random point within the segment (avoid exact edges)
+  const jitter = anglePerSeg * (0.18 + Math.random()*0.64);
+  const localAngle = chosenPoolIdx * anglePerSeg + jitter; // degrees, 0 = top, clockwise
+
+  const targetMod = (360 - localAngle) % 360;
+  const currentMod = ((totalRotation % 360) + 360) % 360;
+  let delta = (targetMod - currentMod + 360) % 360;
+  const extraSpins = 6 + Math.floor(Math.random()*3); // 6-8 full spins
+  totalRotation += delta + extraSpins*360;
+
+  rotor.style.transform = `rotate(${totalRotation}deg)`;
+
+  const onDone = () => {
+    rotor.removeEventListener('transitionend', onDone);
+    revealResult(chosenGlobalIdx);
+    spinning = false;
+    spinBtn.disabled = false;
+    hub.classList.remove('disabled');
+  };
+  rotor.addEventListener('transitionend', onDone);
+
+  // fallback in case transitionend doesn't fire (reduced motion)
+  window.__spinFallback = setTimeout(()=>{
+    if(spinning){ onDone(); }
+  }, 4700);
+}
+
+function revealResult(idx){
+  const item = items[idx];
+  resultPanel.classList.remove('empty');
+  resultText.textContent = item.text;
+
+  if(noRepeatToggle.checked){
+    item.used = true;
+    pendingRemoveIdx = idx; // bleibt auf dem Rad sichtbar bis zum nächsten Dreh
+  }
+  renderLegend(idx);
+  addHistory(item.text);
+}
+
+function addHistory(text){
+  const emptyMsg = historyList.querySelector('.history-empty');
+  if(emptyMsg) emptyMsg.remove();
+  const li = document.createElement('li');
+  const n = historyList.children.length + 1;
+  li.innerHTML = `<b>${String(n).padStart(2,'0')}</b> ${text}`;
+  historyList.prepend(li);
+}
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+spinBtn.addEventListener('click', spin);
+hub.addEventListener('click', spin);
+hub.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); spin(); } });
+
+resetBtn.addEventListener('click', () => {
+  items.forEach(it => it.used = false);
+  pendingRemoveIdx = -1;
+  totalRotation = totalRotation % 360;
+  rotor.style.transition = 'none';
+  rotor.style.transform = `rotate(${totalRotation}deg)`;
+  requestAnimationFrame(()=>{ rotor.style.transition = ''; });
+  drawWheel();
+  renderLegend();
+  historyList.innerHTML = '<li class="history-empty">Noch kein Stichpunkt aufgerufen.</li>';
+  resultPanel.classList.add('empty');
+  resultText.textContent = 'Noch kein Dreh — klicke „Rad drehen"';
+});
+
+noRepeatToggle.addEventListener('change', () => {
+  pendingRemoveIdx = -1;
+  drawWheel();
+  renderLegend();
+});
+
+editToggleBtn.addEventListener('click', () => {
+  const opening = editorPanel.style.display === 'none';
+  editorPanel.style.display = opening ? 'block' : 'none';
+  editToggleBtn.textContent = opening ? 'Liste schließen' : 'Liste bearbeiten';
+  if(opening){ itemsInput.value = items.map(it => it.text).join('\n'); }
+});
+
+defaultBtn.addEventListener('click', () => {
+  itemsInput.value = DEFAULT_ITEMS.map(it => it.text).join('\n');
+});
+
+applyBtn.addEventListener('click', () => {
+  const lines = itemsInput.value.split('\n').map(l => l.trim()).filter(Boolean);
+  if(lines.length < 2){
+    alert('Bitte mindestens 2 Stichpunkte eingeben.');
+    return;
+  }
+  items = lines.map((text, i) => ({
+    text,
+    color: FALLBACK_PALETTE[i % FALLBACK_PALETTE.length],
+    used:false
+  }));
+  pendingRemoveIdx = -1;
+  totalRotation = totalRotation % 360;
+  rotor.style.transition = 'none';
+  rotor.style.transform = `rotate(${totalRotation}deg)`;
+  requestAnimationFrame(()=>{ rotor.style.transition = ''; });
+  drawWheel();
+  renderLegend();
+  historyList.innerHTML = '<li class="history-empty">Noch kein Stichpunkt aufgerufen.</li>';
+  resultPanel.classList.add('empty');
+  resultText.textContent = 'Noch kein Dreh — klicke „Rad drehen"';
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+drawWheel();
+renderLegend();
+
+/* iPad/ältere Safari-Fallback: erzwingt quadratisches Stage-Element,
+   falls CSS aspect-ratio nicht unterstützt wird */
+const wheelStage = document.querySelector('.wheel-stage');
+function enforceSquareStage(){
+  if(!wheelStage) return;
+  const w = wheelStage.getBoundingClientRect().width;
+  wheelStage.style.height = w + 'px';
+}
+enforceSquareStage();
+window.addEventListener('resize', enforceSquareStage);
+window.addEventListener('orientationchange', () => setTimeout(enforceSquareStage, 200));
+</script>
+</body>
+</html>

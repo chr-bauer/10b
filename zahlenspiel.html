@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Das Zahlenspiel</title>
+<style>
+  :root{
+    --navy: #0B1E45;
+    --blue-800: #10336E;
+    --blue-700: #1B4CA0;
+    --blue-600: #2760C4;
+    --blue-500: #3E7BE0;
+    --blue-100: #E4ECFB;
+    --blue-050: #F3F7FE;
+    --white: #FFFFFF;
+    --ink: #0B1E45;
+    --muted: #5B6B8C;
+    --line: #C9D6F2;
+    --error: #B23A48;
+    --error-bg: #FBEAEC;
+    --ok: #1B6E4A;
+    --ok-bg: #E7F5EE;
+    --radius: 6px;
+    --tile-shadow: 0 3px 0 var(--navy);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    min-height: 100%;
+    background: var(--blue-050);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  .stage{
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 28px 20px 64px;
+  }
+
+  .masthead{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--navy);
+    padding-bottom: 14px;
+    margin-bottom: 28px;
+  }
+
+  .masthead h1{
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--navy);
+    font-weight: 800;
+  }
+
+  .masthead .sub{
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .badge-diff{
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border: 1.5px solid var(--blue-600);
+    border-radius: 999px;
+    color: var(--blue-700);
+    background: var(--white);
+    white-space: nowrap;
+  }
+
+  .screen{ display: none; }
+  .screen.active{ display: block; animation: fade .25s ease; }
+
+  @keyframes fade{
+    from{ opacity: 0; transform: translateY(6px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+
+  .panel{
+    background: var(--white);
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  h2{
+    font-size: 1.15rem;
+    margin: 0 0 6px;
+    color: var(--navy);
+  }
+
+  p.lead{
+    color: var(--muted);
+    margin: 0 0 22px;
+    line-height: 1.5;
+    font-size: 0.95rem;
+  }
+
+  /* ---------- Difficulty screen ---------- */
+
+  .diff-grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .diff-card{
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 14px;
+    text-align: left;
+    background: var(--blue-050);
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color .15s, background .15s, transform .1s;
+  }
+
+  .diff-card:hover{
+    border-color: var(--blue-600);
+    background: var(--blue-100);
+  }
+
+  .diff-card:active{ transform: translateY(1px); }
+
+  .diff-card .name{
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--navy);
+  }
+
+  .diff-card .desc{
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .diff-card .meta{
+    font-size: 0.78rem;
+    color: var(--blue-700);
+    border-top: 1px dashed var(--line);
+    padding-top: 8px;
+    margin-top: auto;
+  }
+
+  /* ---------- Buttons ---------- */
+
+  button{
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .btn{
+    border: none;
+    border-radius: var(--radius);
+    padding: 11px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: var(--blue-700);
+    color: var(--white);
+    box-shadow: 0 2px 0 var(--navy);
+  }
+
+  .btn:hover{ background: var(--blue-600); }
+  .btn:active{ transform: translateY(1px); box-shadow: 0 1px 0 var(--navy); }
+
+  .btn:disabled{
+    background: #C6D2EA;
+    color: #8494B8;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .btn.secondary{
+    background: var(--white);
+    color: var(--blue-700);
+    border: 1.5px solid var(--blue-600);
+    box-shadow: none;
+  }
+  .btn.secondary:hover{ background: var(--blue-100); }
+  .btn.secondary:disabled{
+    color: #A9B6D3;
+    border-color: var(--line);
+    background: var(--white);
+  }
+
+  .btn.small{
+    padding: 7px 12px;
+    font-size: 0.82rem;
+  }
+
+  .row{
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .row.between{
+    justify-content: space-between;
+    margin-top: 22px;
+  }
+
+  /* ---------- Numbers screen ---------- */
+
+  .pile-section{
+    margin-bottom: 20px;
+  }
+
+  .pile-title{
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .pile{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tile{
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 5px;
+    background: var(--blue-700);
+    color: var(--white);
+    border: none;
+    font-size: 1.15rem;
+    font-weight: 700;
+    box-shadow: var(--tile-shadow);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tile.large{ background: var(--navy); box-shadow: 0 3px 0 #061029; }
+
+  .tile:hover:not(:disabled){ filter: brightness(1.12); }
+  .tile:active:not(:disabled){ transform: translateY(2px); box-shadow: none; }
+
+  .tile:disabled{
+    background: #D7DFF3;
+    color: #A9B6D3;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .tile .count{
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--white);
+    color: var(--blue-700);
+    border: 1.5px solid var(--blue-700);
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 17px;
+    height: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2px;
+  }
+
+  .selected-rack{
+    display: flex;
+    gap: 8px;
+    margin: 18px 0;
+  }
+
+  .slot{
+    width: 56px;
+    height: 56px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .slot.filled{
+    background: var(--blue-700);
+    color: var(--white);
+    box-shadow: var(--tile-shadow);
+    border: none;
+    cursor: pointer;
+  }
+
+  .slot.empty{
+    border: 1.5px dashed var(--line);
+    color: var(--line);
+    background: var(--blue-050);
+  }
+
+  .auto-draw{
+    border-top: 1px dashed var(--line);
+    padding-top: 16px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .auto-draw label{
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  select, input[type=number]{
+    font-family: inherit;
+    border: 1.5px solid var(--line);
+    border-radius: 5px;
+    padding: 7px 9px;
+    font-size: 0.9rem;
+    color: var(--ink);
+    background: var(--white);
+  }
+
+  /* ---------- Game screen ---------- */
+
+  .target-display{
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  .target-display .label{
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .target-display .number{
+    font-size: 3.2rem;
+    font-weight: 800;
+    color: var(--navy);
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .drawn-rack{
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 26px;
+  }
+
+  .timer-block{
+    background: var(--blue-050);
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .timer-setup{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+
+  .clock{
+    font-size: 3.6rem;
+    font-weight: 800;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+    font-family: "Courier New", Consolas, monospace;
+    letter-spacing: 0.03em;
+  }
+
+  .clock.warn{ color: var(--error); }
+
+  .progress-track{
+    height: 8px;
+    border-radius: 999px;
+    background: var(--blue-100);
+    overflow: hidden;
+    margin-top: 10px;
+  }
+
+  .progress-fill{
+    height: 100%;
+    background: var(--blue-600);
+    width: 100%;
+    transition: width 1s linear, background .3s;
+  }
+
+  .progress-fill.warn{ background: var(--error); }
+
+  .answer-block{
+    border-top: 1.5px dashed var(--line);
+    padding-top: 18px;
+    margin-top: 6px;
+  }
+
+  .answer-block.hidden{ display: none; }
+
+  .answer-input{
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 1.05rem;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 10px;
+  }
+
+  .answer-input:focus{
+    outline: none;
+    border-color: var(--blue-600);
+  }
+
+  .hint-box{
+    margin-top: 14px;
+    background: var(--blue-050);
+    border: 1.5px dashed var(--blue-600);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    color: var(--blue-700);
+  }
+
+  .hint-box.hidden{ display: none; }
+
+  .hint-note{
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ---------- Result screen ---------- */
+
+  .result-hero{
+    text-align: center;
+    padding: 22px 10px 26px;
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+  }
+
+  .result-hero.ok{ background: var(--ok-bg); }
+  .result-hero.error{ background: var(--error-bg); }
+
+  .result-points{
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: var(--navy);
+  }
+
+  .result-points .of{
+    font-size: 1.1rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .result-headline{
+    font-size: 0.95rem;
+    margin-top: 6px;
+    color: var(--ink);
+  }
+
+  .result-detail{
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .error-msg{
+    color: var(--error);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  .stat-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat{
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+
+  .stat .k{
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .stat .v{
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+  }
+
+  footer.note{
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 30px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 560px){
+    .diff-grid{ grid-template-columns: 1fr; }
+    .clock{ font-size: 2.8rem; }
+    .target-display .number{ font-size: 2.4rem; }
+    .tile, .slot{ width: 48px; height: 48px; font-size: 1rem; }
+    .stat-grid{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="masthead">
+    <div>
+      <h1>Das Zahlenspiel</h1>
+    </div>
+    <div class="row" style="gap:10px;">
+      <div class="badge-diff" id="diffBadge" style="display:none;"></div>
+      <button class="btn secondary small" id="btnHome" style="display:none;">Zur Startseite</button>
+    </div>
+  </div>
+
+  <main id="app">
+
+    <!-- SCREEN 1: Schwierigkeit -->
+    <section class="screen active" id="screen-difficulty">
+      <div class="panel">
+        <h2>Schwierigkeit wählen</h2>
+        <div class="diff-grid">
+          <button class="diff-card" data-diff="leicht">
+            <span class="name">Leicht</span>
+            <span class="meta">Zielzahl 100–300</span>
+          </button>
+          <button class="diff-card" data-diff="mittel">
+            <span class="name">Mittel</span>
+            <span class="meta">Zielzahl 100–650</span>
+          </button>
+          <button class="diff-card" data-diff="schwer">
+            <span class="name">Schwer</span>
+            <span class="meta">Zielzahl 100–999</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: Zahlen ziehen -->
+    <section class="screen" id="screen-numbers">
+      <div class="panel">
+        <h2>Sechs Zahlen ziehen</h2>
+        <p class="lead">Wähle sechs Zahlen von den Stapeln. Große Zahlen gibt es je einmal, kleine Zahlen je zweimal.</p>
+
+        <div class="pile-section">
+          <div class="pile-title">Große Zahlen</div>
+          <div class="pile" id="pileLarge"></div>
+        </div>
+
+        <div class="pile-section">
+          <div class="pile-title">Kleine Zahlen</div>
+          <div class="pile" id="pileSmall"></div>
+        </div>
+
+        <div class="pile-title">Deine sechs Zahlen</div>
+        <div class="selected-rack" id="selectedRack"></div>
+
+        <div class="auto-draw">
+          <label for="autoLargeCount">Automatisch ziehen — Anzahl große Zahlen:</label>
+          <select id="autoLargeCount">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+          <button class="btn secondary small" id="btnAutoDraw">Automatisch ziehen</button>
+          <button class="btn secondary small" id="btnResetPiles">Zurücksetzen</button>
+        </div>
+
+        <div class="row between">
+          <button class="btn secondary" id="btnBackToDiff">Zurück</button>
+          <button class="btn" id="btnToGame" disabled>Zielzahl auslosen</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: Spiel -->
+    <section class="screen" id="screen-game">
+      <div class="panel">
+        <div class="target-display">
+          <div class="label">Zielzahl</div>
+          <div class="number" id="targetNumber">—</div>
+        </div>
+
+        <div class="drawn-rack" id="drawnRack"></div>
+
+        <div class="timer-block">
+          <div class="timer-setup" id="timerSetup">
+            <label for="timerSeconds" style="font-size:0.85rem; color: var(--muted);">Countdown-Zeit (Sek.):</label>
+            <input type="number" id="timerSeconds" min="5" max="180" step="5">
+            <button class="btn small" id="btnStartTimer">Start</button>
+          </div>
+          <div class="clock" id="clockDisplay" style="display:none;">30</div>
+          <div class="progress-track" id="progressTrack" style="display:none;">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="row" id="timerRunningControls" style="display:none; justify-content:center; margin-top:12px;">
+            <button class="btn secondary small" id="btnFinishEarly">Ich bin fertig</button>
+          </div>
+        </div>
+
+        <div class="hint-box hidden" id="hintBox"></div>
+
+        <div class="answer-block hidden" id="answerBlock">
+          <p class="lead" style="margin-bottom:10px;">Gib deine Rechnung ein, z. B. <code>(25+3)*4-10</code>. Nur die gezogenen Zahlen und + − × ÷ sind erlaubt, Zwischenergebnisse müssen positive ganze Zahlen sein.</p>
+          <input type="text" class="answer-input" id="answerInput" placeholder="z. B. (100-25)*4+3" autocomplete="off">
+          <div class="row">
+            <button class="btn" id="btnCheckAnswer">Antwort prüfen</button>
+            <button class="btn secondary" id="btnHint">Lösung anzeigen</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: Ergebnis -->
+    <section class="screen" id="screen-result">
+      <div class="panel">
+        <div class="result-hero" id="resultHero">
+          <div class="result-points" id="resultPoints">0 <span class="of">/ 10 Punkte</span></div>
+          <div class="result-headline" id="resultHeadline"></div>
+          <div class="result-detail" id="resultDetail"></div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="k">Zielzahl</div>
+            <div class="v" id="statTarget">—</div>
+          </div>
+          <div class="stat">
+            <div class="k">Deine Zahl</div>
+            <div class="v" id="statYours">—</div>
+          </div>
+        </div>
+
+        <div class="hint-box hidden" id="resultHintBox"></div>
+        <div class="row" style="margin-top:16px;">
+          <button class="btn secondary" id="btnShowSolutionResult">Lösung anzeigen</button>
+        </div>
+
+        <div class="row between">
+          <button class="btn secondary" id="btnNewNumbers">Neue Zahlen ziehen</button>
+          <button class="btn" id="btnSameNumbersAgain">Gleiche Zahlen, neue Zielzahl</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="note">
+    Regeln angelehnt an das Zahlenspiel aus „Countdown“ / „8 Out of 10 Cats Does Countdown“.
+    Jede Zahl darf nur so oft verwendet werden, wie sie gezogen wurde; Zwischenergebnisse müssen stets positive ganze Zahlen sein.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Konfiguration je Schwierigkeit ----------
+  const DIFF = {
+    leicht: { label: "Leicht", timer: 60, targetMin: 100, targetMax: 300,
+      hintPolicy: "afterTime",
+      scoring: [[0,10],[5,7],[9,5]] },
+    mittel: { label: "Mittel", timer: 60, targetMin: 100, targetMax: 650,
+      hintPolicy: "afterTime",
+      scoring: [[0,10],[5,7],[9,5]] },
+    schwer: { label: "Schwer", timer: 60, targetMin: 100, targetMax: 999,
+      hintPolicy: "afterTime",
+      scoring: [[0,10],[5,7],[9,5]] }
+  };
+
+  // ---------- Spielzustand ----------
+  const state = {
+    difficulty: null,
+    large: {},
+    small: {},
+    selected: [],
+    target: null,
+    timerSeconds: 30,
+    timeLeft: 0,
+    timerId: null,
+    timerRunning: false,
+    timeUp: false,
+    ownAnswerChecked: false,
+    lastResult: null
+  };
+
+  function resetPiles(){
+    state.large = {25:1, 50:1, 75:1, 100:1};
+    state.small = {};
+    for(let i=1;i<=10;i++) state.small[i] = 2;
+    state.selected = [];
+  }
+  resetPiles();
+
+  // ---------- Bildschirm-Wechsel ----------
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  }
+
+  // ---------- SCREEN 1: Schwierigkeit ----------
+  document.querySelectorAll(".diff-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const diff = card.dataset.diff;
+      state.difficulty = diff;
+      state.timerSeconds = DIFF[diff].timer;
+      const badge = document.getElementById("diffBadge");
+      badge.textContent = "Stufe: " + DIFF[diff].label;
+      badge.style.display = "inline-block";
+      document.getElementById("btnHome").style.display = "inline-block";
+      resetPiles();
+      renderPiles();
+      renderSelectedRack();
+      showScreen("screen-numbers");
+    });
+  });
+
+  document.getElementById("btnHome").addEventListener("click", goHome);
+
+  function goHome(){
+    clearInterval(state.timerId);
+    state.timerRunning = false;
+    state.difficulty = null;
+    document.getElementById("diffBadge").style.display = "none";
+    document.getElementById("btnHome").style.display = "none";
+    resetPiles();
+    showScreen("screen-difficulty");
+  }
+
+  // ---------- SCREEN 2: Zahlen ziehen ----------
+  function renderPiles(){
+    const pileLarge = document.getElementById("pileLarge");
+    const pileSmall = document.getElementById("pileSmall");
+    pileLarge.innerHTML = "";
+    pileSmall.innerHTML = "";
+
+    [25,50,75,100].forEach(n => {
+      pileLarge.appendChild(makeTile(n, state.large[n], true));
+    });
+    for(let n=1;n<=10;n++){
+      pileSmall.appendChild(makeTile(n, state.small[n], false));
+    }
+  }
+
+  function makeTile(n, count, isLarge){
+    const btn = document.createElement("button");
+    btn.className = "tile" + (isLarge ? " large" : "");
+    btn.textContent = n;
+    btn.disabled = count <= 0 || state.selected.length >= 6;
+    const badge = document.createElement("span");
+    badge.className = "count";
+    badge.textContent = count;
+    btn.appendChild(badge);
+    btn.addEventListener("click", () => {
+      if(state.selected.length >= 6) return;
+      const pile = isLarge ? state.large : state.small;
+      if(pile[n] <= 0) return;
+      pile[n]--;
+      state.selected.push(n);
+      renderPiles();
+      renderSelectedRack();
+    });
+    return btn;
+  }
+
+  function renderSelectedRack(){
+    const rack = document.getElementById("selectedRack");
+    rack.innerHTML = "";
+    for(let i=0;i<6;i++){
+      const slot = document.createElement("div");
+      if(i < state.selected.length){
+        const n = state.selected[i];
+        slot.className = "slot filled";
+        slot.textContent = n;
+        slot.title = "Zurücklegen";
+        slot.addEventListener("click", () => {
+          const removed = state.selected.splice(i,1)[0];
+          if(removed <= 10 && state.small.hasOwnProperty(removed) && [25,50,75,100].indexOf(removed) === -1){
+            state.small[removed]++;
+          } else {
+            state.large[removed]++;
+          }
+          renderPiles();
+          renderSelectedRack();
+        });
+      } else {
+        slot.className = "slot empty";
+        slot.textContent = "–";
+      }
+      rack.appendChild(slot);
+    }
+    document.getElementById("btnToGame").disabled = state.selected.length !== 6;
+  }
+
+  document.getElementById("btnResetPiles").addEventListener("click", () => {
+    resetPiles();
+    renderPiles();
+    renderSelectedRack();
+  });
+
+  document.getElementById("btnAutoDraw").addEventListener("click", () => {
+    resetPiles();
+    const largeWanted = parseInt(document.getElementById("autoLargeCount").value, 10);
+    const largeKeys = [25,50,75,100];
+    // große Zahlen ziehen
+    let drawnLarge = 0;
+    const shuffledLarge = [...largeKeys].sort(() => Math.random() - 0.5);
+    for(const n of shuffledLarge){
+      if(drawnLarge >= largeWanted) break;
+      state.large[n]--;
+      state.selected.push(n);
+      drawnLarge++;
+    }
+    // restliche kleine Zahlen ziehen
+    while(state.selected.length < 6){
+      const pool = [];
+      for(let n=1;n<=10;n++){
+        for(let k=0;k<state.small[n];k++) pool.push(n);
+      }
+      if(pool.length === 0) break;
+      const pick = pool[Math.floor(Math.random()*pool.length)];
+      state.small[pick]--;
+      state.selected.push(pick);
+    }
+    renderPiles();
+    renderSelectedRack();
+  });
+
+  document.getElementById("btnBackToDiff").addEventListener("click", () => {
+    showScreen("screen-difficulty");
+  });
+
+  document.getElementById("btnToGame").addEventListener("click", () => {
+    const cfg = DIFF[state.difficulty];
+    state.target = Math.floor(Math.random() * (cfg.targetMax - cfg.targetMin + 1)) + cfg.targetMin;
+    state.timeUp = false;
+    state.ownAnswerChecked = false;
+    startGameScreen();
+  });
+
+  // ---------- SCREEN 3: Spiel ----------
+  function startGameScreen(){
+    document.getElementById("targetNumber").textContent = state.target;
+    const rack = document.getElementById("drawnRack");
+    rack.innerHTML = "";
+    state.selected.forEach(n => {
+      const tile = document.createElement("div");
+      tile.className = "slot filled";
+      tile.textContent = n;
+      rack.appendChild(tile);
+    });
+
+    // Timer zurücksetzen
+    document.getElementById("timerSeconds").value = state.timerSeconds;
+    document.getElementById("timerSetup").style.display = "flex";
+    document.getElementById("clockDisplay").style.display = "none";
+    document.getElementById("progressTrack").style.display = "none";
+    document.getElementById("timerRunningControls").style.display = "none";
+    document.getElementById("answerBlock").classList.add("hidden");
+    document.getElementById("answerInput").value = "";
+    document.getElementById("hintBox").classList.add("hidden");
+    clearInterval(state.timerId);
+    state.timerRunning = false;
+
+    updateHintButtonVisibility();
+    showScreen("screen-game");
+  }
+
+  document.getElementById("btnStartTimer").addEventListener("click", () => {
+    const seconds = parseInt(document.getElementById("timerSeconds").value, 10);
+    state.timerSeconds = Math.min(180, Math.max(5, seconds || DIFF[state.difficulty].timer));
+    state.timeLeft = state.timerSeconds;
+    state.timerRunning = true;
+    state.timeUp = false;
+
+    document.getElementById("timerSetup").style.display = "none";
+    document.getElementById("clockDisplay").style.display = "block";
+    document.getElementById("progressTrack").style.display = "block";
+    document.getElementById("timerRunningControls").style.display = "flex";
+
+    tickClock();
+    state.timerId = setInterval(tickClock, 1000);
+  });
+
+  function tickClock(){
+    const clock = document.getElementById("clockDisplay");
+    const fill = document.getElementById("progressFill");
+    clock.textContent = state.timeLeft;
+    const pct = Math.max(0, (state.timeLeft / state.timerSeconds) * 100);
+    fill.style.width = pct + "%";
+    const warn = state.timeLeft <= 5;
+    clock.classList.toggle("warn", warn);
+    fill.classList.toggle("warn", warn);
+
+    if(state.timeLeft <= 0){
+      finishTimer();
+      return;
+    }
+    state.timeLeft--;
+  }
+
+  function finishTimer(){
+    clearInterval(state.timerId);
+    state.timerRunning = false;
+    state.timeUp = true;
+    document.getElementById("timerRunningControls").style.display = "none";
+    document.getElementById("answerBlock").classList.remove("hidden");
+    updateHintButtonVisibility();
+    document.getElementById("answerInput").focus();
+  }
+
+  document.getElementById("btnFinishEarly").addEventListener("click", finishTimer);
+
+  function updateHintButtonVisibility(){
+    const policy = DIFF[state.difficulty].hintPolicy;
+    const btn = document.getElementById("btnHint");
+    if(policy === "always"){
+      btn.style.display = "inline-block";
+    } else if(policy === "afterTime"){
+      btn.style.display = state.timeUp ? "inline-block" : "none";
+    } else {
+      btn.style.display = "none"; // erst auf dem Ergebnis-Screen
+    }
+  }
+
+  document.getElementById("btnHint").addEventListener("click", () => {
+    showHint(document.getElementById("hintBox"));
+  });
+
+  function showHint(box){
+    box.classList.remove("hidden");
+    box.innerHTML = "Lösung wird gesucht …";
+    setTimeout(() => {
+      const solution = solveNumbers(state.selected, state.target);
+      if(!solution || solution.value === null){
+        box.innerHTML = "Es konnte keine Annäherung gefunden werden.";
+        return;
+      }
+      const diff = Math.abs(solution.value - state.target);
+      box.innerHTML = "<strong>" + formatExpr(solution.expr) + " = " + solution.value + "</strong>" +
+        (diff === 0 ? " — exakt getroffen." : " — Abweichung " + diff + ".") +
+        "<div class='hint-note'>Es kann weitere, ebenso gute Lösungen geben.</div>";
+    }, 30);
+  }
+
+  // ---------- Antwort prüfen ----------
+  document.getElementById("btnCheckAnswer").addEventListener("click", checkAnswer);
+  document.getElementById("answerInput").addEventListener("keydown", e => {
+    if(e.key === "Enter") checkAnswer();
+  });
+
+  function checkAnswer(){
+    const raw = document.getElementById("answerInput").value.trim();
+    state.ownAnswerChecked = true;
+
+    let result;
+    if(raw === ""){
+      result = { valid: false, message: "Bitte gib eine Rechnung ein.", value: null };
+    } else {
+      result = validateExpression(raw, state.selected);
+    }
+    state.lastResult = result;
+    state.lastRaw = raw;
+    showResultScreen();
+  }
+
+  function showResultScreen(){
+    const r = state.lastResult;
+    const hero = document.getElementById("resultHero");
+    const pointsEl = document.getElementById("resultPoints");
+    const headline = document.getElementById("resultHeadline");
+    const detail = document.getElementById("resultDetail");
+
+    document.getElementById("statTarget").textContent = state.target;
+
+    if(!r.valid){
+      hero.className = "result-hero error";
+      pointsEl.innerHTML = "0 <span class='of'>/ 10 Punkte</span>";
+      headline.textContent = "Diese Rechnung ist ungültig.";
+      detail.innerHTML = "<span class='error-msg'>" + escapeHtml(r.message) + "</span>";
+      document.getElementById("statYours").textContent = "—";
+    } else {
+      const diff = Math.abs(r.value - state.target);
+      const points = pointsForDiff(diff, DIFF[state.difficulty].scoring);
+      hero.className = "result-hero " + (points > 0 ? "ok" : "error");
+      pointsEl.innerHTML = points + " <span class='of'>/ 10 Punkte</span>";
+      headline.textContent = diff === 0
+        ? "Exakt getroffen!"
+        : "Abweichung von " + diff + (diff === 1 ? " Zahl" : " Zahlen") + " zur Zielzahl.";
+      detail.textContent = escapeHtml(formatExpr(state.lastRaw)) + " = " + r.value;
+      document.getElementById("statYours").textContent = r.value;
+    }
+
+    const resultHintBox = document.getElementById("resultHintBox");
+    resultHintBox.classList.add("hidden");
+    resultHintBox.innerHTML = "";
+
+    showScreen("screen-result");
+  }
+
+  document.getElementById("btnShowSolutionResult").addEventListener("click", () => {
+    showHint(document.getElementById("resultHintBox"));
+  });
+
+  document.getElementById("btnNewNumbers").addEventListener("click", () => {
+    resetPiles();
+    renderPiles();
+    renderSelectedRack();
+    showScreen("screen-numbers");
+  });
+
+  document.getElementById("btnSameNumbersAgain").addEventListener("click", () => {
+    const cfg = DIFF[state.difficulty];
+    state.target = Math.floor(Math.random() * (cfg.targetMax - cfg.targetMin + 1)) + cfg.targetMin;
+    state.timeUp = false;
+    state.ownAnswerChecked = false;
+    startGameScreen();
+  });
+
+  // ---------- Punktesystem ----------
+  function pointsForDiff(diff, scoringTable){
+    for(const [maxDiff, points] of scoringTable){
+      if(diff <= maxDiff) return points;
+    }
+    return 0;
+  }
+
+  // ---------- Ausdruck parsen & validieren ----------
+  function validateExpression(str, drawn){
+    let tokens;
+    try{
+      tokens = tokenize(str);
+    } catch(e){
+      return { valid: false, message: e.message, value: null };
+    }
+    if(tokens.length === 0){
+      return { valid: false, message: "Bitte gib eine Rechnung ein.", value: null };
+    }
+
+    let ast;
+    try{
+      ast = parseExpr(tokens);
+    } catch(e){
+      return { valid: false, message: e.message, value: null };
+    }
+
+    const leaves = [];
+    let value;
+    try{
+      value = evalNode(ast, leaves);
+    } catch(e){
+      return { valid: false, message: e.message, value: null };
+    }
+
+    const subsetCheck = checkLeavesSubset(leaves, drawn);
+    if(!subsetCheck.ok){
+      return { valid: false, message: subsetCheck.message, value: null };
+    }
+
+    return { valid: true, value, leaves };
+  }
+
+  function tokenize(str){
+    const tokens = [];
+    let i = 0;
+    while(i < str.length){
+      const c = str[i];
+      if(/\s/.test(c)){ i++; continue; }
+      if(/\d/.test(c)){
+        let j = i;
+        while(j < str.length && /\d/.test(str[j])) j++;
+        tokens.push({ type: "num", value: parseInt(str.slice(i,j), 10) });
+        i = j;
+        continue;
+      }
+      if(c === "×" || c === "x" || c === "X"){ tokens.push({type:"*"}); i++; continue; }
+      if(c === "÷" || c === ":"){ tokens.push({type:"/"}); i++; continue; }
+      if("+-*/()".includes(c)){ tokens.push({ type: c }); i++; continue; }
+      throw new Error('Ungültiges Zeichen: "' + c + '". Erlaubt sind Ziffern, + − * / und Klammern.');
+    }
+    return tokens;
+  }
+
+  function parseExpr(tokens){
+    let pos = 0;
+    function peek(){ return tokens[pos]; }
+
+    function expr(){
+      let node = term();
+      while(peek() && (peek().type === "+" || peek().type === "-")){
+        const op = tokens[pos++].type;
+        const right = term();
+        node = { type: "op", op, left: node, right };
+      }
+      return node;
+    }
+    function term(){
+      let node = factor();
+      while(peek() && (peek().type === "*" || peek().type === "/")){
+        const op = tokens[pos++].type;
+        const right = factor();
+        node = { type: "op", op, left: node, right };
+      }
+      return node;
+    }
+    function factor(){
+      const t = peek();
+      if(!t) throw new Error("Die Rechnung ist unvollständig.");
+      if(t.type === "num"){ pos++; return { type: "num", value: t.value }; }
+      if(t.type === "("){
+        pos++;
+        const node = expr();
+        if(!peek() || peek().type !== ")") throw new Error("Es fehlt eine schließende Klammer.");
+        pos++;
+        return node;
+      }
+      throw new Error('Unerwartetes Zeichen an dieser Stelle: "' + (t.type === "num" ? t.value : t.type) + '".');
+    }
+
+    const node = expr();
+    if(pos !== tokens.length) throw new Error("Es steht ein überzähliges Zeichen am Ende der Rechnung.");
+    return node;
+  }
+
+  function evalNode(node, leaves){
+    if(node.type === "num"){
+      if(node.value <= 0) throw new Error("Nur positive Zahlen sind erlaubt.");
+      leaves.push(node.value);
+      return node.value;
+    }
+    const l = evalNode(node.left, leaves);
+    const r = evalNode(node.right, leaves);
+    let v;
+    switch(node.op){
+      case "+": v = l + r; break;
+      case "-":
+        v = l - r;
+        if(v <= 0) throw new Error("Zwischenergebnis " + l + " − " + r + " = " + v + " ist nicht positiv.");
+        break;
+      case "*": v = l * r; break;
+      case "/":
+        if(r === 0) throw new Error("Division durch 0 ist nicht erlaubt.");
+        if(l % r !== 0) throw new Error("Division " + l + " ÷ " + r + " geht nicht ohne Rest auf.");
+        v = l / r;
+        break;
+    }
+    if(!Number.isInteger(v)) throw new Error("Ein Zwischenergebnis ist keine ganze Zahl.");
+    return v;
+  }
+
+  function checkLeavesSubset(leaves, drawn){
+    const drawnCounts = {};
+    drawn.forEach(n => drawnCounts[n] = (drawnCounts[n] || 0) + 1);
+    const usedCounts = {};
+    for(const n of leaves){
+      usedCounts[n] = (usedCounts[n] || 0) + 1;
+      if(!drawnCounts[n] || usedCounts[n] > drawnCounts[n]){
+        return { ok: false, message: "Die Zahl " + n + " wurde nicht (oder nicht so oft) gezogen." };
+      }
+    }
+    return { ok: true };
+  }
+
+  function formatExpr(str){
+    return str;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---------- Lösungs-Solver ----------
+  function solveNumbers(numbers, target){
+    const start = numbers.map(n => ({ value: n, expr: String(n) }));
+    let best = { diff: Infinity, value: null, expr: null };
+    let evalCount = 0;
+    const MAX_EVAL = 300000;
+
+    function consider(node){
+      const diff = Math.abs(node.value - target);
+      if(diff < best.diff){
+        best = { diff, value: node.value, expr: node.expr };
+      }
+    }
+
+    function combine(a, b){
+      const out = [];
+      out.push({ value: a.value + b.value, expr: "(" + a.expr + " + " + b.expr + ")" });
+      if(a.value > b.value) out.push({ value: a.value - b.value, expr: "(" + a.expr + " - " + b.expr + ")" });
+      else if(b.value > a.value) out.push({ value: b.value - a.value, expr: "(" + b.expr + " - " + a.expr + ")" });
+      if(a.value !== 1 && b.value !== 1) out.push({ value: a.value * b.value, expr: "(" + a.expr + " * " + b.expr + ")" });
+      if(b.value !== 0 && a.value % b.value === 0 && b.value !== 1) out.push({ value: a.value / b.value, expr: "(" + a.expr + " / " + b.expr + ")" });
+      if(a.value !== 0 && b.value % a.value === 0 && a.value !== 1) out.push({ value: b.value / a.value, expr: "(" + b.expr + " / " + a.expr + ")" });
+      return out;
+    }
+
+    function search(list){
+      if(best.diff === 0 || evalCount > MAX_EVAL) return;
+      for(const node of list) consider(node);
+      if(best.diff === 0) return;
+      for(let i = 0; i < list.length; i++){
+        for(let j = i + 1; j < list.length; j++){
+          const rest = list.filter((_, idx) => idx !== i && idx !== j);
+          const combos = combine(list[i], list[j]);
+          for(const c of combos){
+            evalCount++;
+            if(evalCount > MAX_EVAL || best.diff === 0) return;
+            search([...rest, c]);
+          }
+        }
+      }
+    }
+
+    search(start);
+    return best;
+  }
+
+})();
+</script>
+</body>
+</html>

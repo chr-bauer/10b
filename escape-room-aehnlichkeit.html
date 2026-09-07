@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Nachtschicht im Miniaturmuseum – Ähnlichkeit, Flächen und Volumen</title>
+<style>
+  :root{
+    --nacht:#0e1f28;
+    --wand:#173040;
+    --boden:#2d4b52;
+    --boden2:#27424a;
+    --lampe:#f4c979;
+    --messing:#c98b3a;
+    --papier:#efe6d2;
+    --mint:#71d6b4;
+    --rot:#d4674f;
+    --serif: Baskerville, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--nacht); color:var(--papier);
+    font-family:var(--sans); overflow:hidden;
+    touch-action:manipulation; user-select:none; -webkit-user-select:none;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #app{height:100%; display:flex; flex-direction:column;}
+
+  /* ---------- Kopfzeile mit Code-Schloss ---------- */
+  header{
+    display:flex; align-items:center; gap:14px; padding:8px 14px;
+    border-bottom:1px solid rgba(239,230,210,.14); flex:none;
+  }
+  header h1{
+    font-family:var(--serif); font-weight:400; font-size:clamp(15px,2.2vw,21px);
+    margin:0; letter-spacing:.01em; line-height:1.15;
+  }
+  header h1 small{display:block; font-family:var(--sans); font-size:11px; opacity:.55; letter-spacing:.06em;}
+  .slots{margin-left:auto; display:flex; gap:7px; align-items:center;}
+  .slot{
+    width:34px; height:44px; border-radius:5px; display:grid; place-items:center;
+    background:#0a1a22; border:1px solid rgba(201,139,58,.45);
+    font-family:var(--serif); font-size:24px; color:var(--messing);
+  }
+  .slot.gefunden{color:var(--lampe); border-color:var(--lampe); box-shadow:0 0 14px rgba(244,201,121,.3); background:#152b33;}
+  .slot span{opacity:.35;}
+  .slot.gefunden span{opacity:1;}
+
+  /* ---------- Bühne ---------- */
+  #stage{flex:1; min-height:0; position:relative; display:grid; place-items:center;}
+  svg#raum{width:100%; height:100%; display:block;}
+  .tipp{
+    position:absolute; left:50%; transform:translateX(-50%); bottom:8px;
+    background:rgba(10,26,34,.88); border:1px solid rgba(113,214,180,.4);
+    color:var(--papier); padding:7px 14px; border-radius:20px; font-size:13px;
+    pointer-events:none; opacity:0; transition:opacity .2s;
+  }
+  .tipp.an{opacity:1;}
+
+  /* ---------- Steuerung ---------- */
+  #steuerung{
+    flex:none; display:flex; align-items:center; justify-content:space-between;
+    padding:6px 16px 12px; gap:12px;
+  }
+  .dpad{display:grid; grid-template-columns:repeat(3,50px); grid-template-rows:repeat(3,42px); gap:5px;}
+  .dpad button{
+    background:#193440; border:1px solid rgba(239,230,210,.18); border-radius:10px;
+    color:var(--papier); font-size:17px; padding:0; cursor:pointer;
+  }
+  .dpad button:active{background:#26505f;}
+  .dpad .leer{visibility:hidden;}
+  #aktion{
+    background:var(--mint); color:#08222c; border:none; border-radius:26px;
+    padding:15px 26px; font-size:16px; font-weight:600; cursor:pointer;
+    opacity:.25; pointer-events:none; transition:opacity .18s;
+  }
+  #aktion.bereit{opacity:1; pointer-events:auto;}
+  .hilfe{font-size:12px; opacity:.5; max-width:190px; line-height:1.35;}
+
+  /* ---------- Dialoge ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,16,21,.86); display:none;
+    align-items:center; justify-content:center; padding:16px; z-index:20;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  .overlay.an{display:flex;}
+  .karte{
+    background:#132b35; border:1px solid rgba(201,139,58,.4); border-radius:12px;
+    max-width:640px; width:100%; padding:26px 26px 22px; box-shadow:0 24px 60px rgba(0,0,0,.55);
+    margin:auto;
+  }
+  .karte h2{font-family:var(--serif); font-weight:400; font-size:26px; margin:0 0 4px;}
+  .karte .ort{font-size:12px; letter-spacing:.08em; opacity:.5; margin:0 0 16px;}
+  .karte p{line-height:1.55; font-size:15px; margin:0 0 14px;}
+  .karte .daten{
+    background:#0d2029; border-left:3px solid var(--messing); border-radius:0 7px 7px 0;
+    padding:12px 15px; font-size:14px; line-height:1.65; margin:0 0 18px;
+  }
+  .karte .daten b{color:var(--lampe); font-weight:600;}
+  .schritte{display:flex; gap:6px; margin:0 0 14px;}
+  .schritte i{
+    height:4px; flex:1; background:rgba(239,230,210,.15); border-radius:2px;
+  }
+  .schritte i.fertig{background:var(--mint);}
+  .schritte i.aktiv{background:var(--lampe);}
+  .frage{font-size:16px; line-height:1.55; margin:0 0 14px;}
+  .frage .num{color:var(--lampe); font-family:var(--serif); font-size:15px; margin-right:6px;}
+  .eingabe{display:flex; gap:9px; align-items:stretch; flex-wrap:wrap;}
+  .eingabe input{
+    flex:1; min-width:130px; background:#0a1a22; border:1px solid rgba(239,230,210,.28);
+    border-radius:8px; color:var(--papier); font-size:19px; padding:12px 14px; font-family:var(--sans);
+  }
+  .eingabe input:focus{outline:2px solid var(--mint); outline-offset:1px; border-color:transparent;}
+  .einheit{align-self:center; opacity:.6; font-size:14px;}
+  button.prim{
+    background:var(--lampe); color:#12232b; border:none; border-radius:8px;
+    padding:12px 22px; font-size:15px; font-weight:600; cursor:pointer;
+  }
+  button.sek{
+    background:transparent; color:var(--papier); border:1px solid rgba(239,230,210,.3);
+    border-radius:8px; padding:11px 20px; font-size:14px; cursor:pointer;
+  }
+  button.prim:active, button.sek:active{transform:translateY(1px);}
+  .rueck{margin-top:14px; font-size:14.5px; line-height:1.55; border-radius:8px; padding:12px 14px; display:none;}
+  .rueck.an{display:block;}
+  .rueck.falsch{background:rgba(212,103,79,.14); border:1px solid rgba(212,103,79,.5);}
+  .rueck.richtig{background:rgba(113,214,180,.12); border:1px solid rgba(113,214,180,.5);}
+  .rueck b{display:block; margin-bottom:4px;}
+  .fund{text-align:center; padding:10px 0 4px;}
+  .fund .ziffer{
+    font-family:var(--serif); font-size:62px; color:var(--lampe); line-height:1;
+    display:inline-block; padding:14px 26px; border:2px solid var(--messing); border-radius:10px;
+    background:#0d2029; margin-bottom:12px;
+  }
+  .aktionen{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+
+  /* Tastenfeld an der Tür */
+  .tastenfeld{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; max-width:250px; margin:14px auto 0;}
+  .tastenfeld button{
+    background:#0d2029; border:1px solid rgba(239,230,210,.25); color:var(--papier);
+    font-size:22px; padding:15px 0; border-radius:9px; cursor:pointer; font-family:var(--serif);
+  }
+  .tastenfeld button:active{background:#26505f;}
+  .anzeige{
+    text-align:center; font-family:var(--serif); font-size:42px; letter-spacing:.28em;
+    color:var(--lampe); background:#0a1a22; border-radius:8px; padding:12px 0 12px 12px;
+    border:1px solid rgba(201,139,58,.4); margin-bottom:6px; min-height:66px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+  @media (max-height:520px){
+    header{padding:5px 12px;} .slot{height:36px; width:28px; font-size:20px;}
+    .dpad{grid-template-rows:repeat(3,34px); grid-template-columns:repeat(3,44px);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Nachtschicht im Miniaturmuseum<small>Werkstatt „Maßstab" · Ausgang verriegelt</small></h1>
+    <div class="slots">
+      <div class="slot" id="slot0"><span>?</span></div>
+      <div class="slot" id="slot1"><span>?</span></div>
+      <div class="slot" id="slot2"><span>?</span></div>
+    </div>
+  </header>
+
+  <div id="stage">
+    <svg id="raum" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid meet" aria-label="Draufsicht auf die Museumswerkstatt">
+      <defs>
+        <linearGradient id="wandG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#0d1e28"/><stop offset="1" stop-color="#1b3948"/>
+        </linearGradient>
+        <linearGradient id="bodenG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#26424b"/><stop offset="1" stop-color="#1b3038"/>
+        </linearGradient>
+        <radialGradient id="lichtG" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stop-color="#ffd98a" stop-opacity=".38"/>
+          <stop offset="60%" stop-color="#ffd98a" stop-opacity=".12"/>
+          <stop offset="100%" stop-color="#ffd98a" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="rotG" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stop-color="#ff7a5c" stop-opacity=".34"/>
+          <stop offset="100%" stop-color="#ff7a5c" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="wasserG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#4fb7c9" stop-opacity=".85"/>
+          <stop offset="1" stop-color="#1f6d80" stop-opacity=".9"/>
+        </linearGradient>
+        <linearGradient id="holzG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#7c5a35"/><stop offset="1" stop-color="#5d4226"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Boden -->
+      <rect x="0" y="0" width="960" height="640" fill="url(#bodenG)"/>
+      <g opacity=".22" stroke="#0c1c23" stroke-width="2">
+        <line x1="0" y1="170" x2="960" y2="170"/><line x1="0" y1="230" x2="960" y2="230"/>
+        <line x1="0" y1="290" x2="960" y2="290"/><line x1="0" y1="350" x2="960" y2="350"/>
+        <line x1="0" y1="410" x2="960" y2="410"/><line x1="0" y1="470" x2="960" y2="470"/>
+        <line x1="0" y1="530" x2="960" y2="530"/><line x1="0" y1="590" x2="960" y2="590"/>
+      </g>
+      <!-- Teppich -->
+      <rect x="380" y="270" width="290" height="200" rx="8" fill="#3b5d5a" opacity=".45"/>
+      <rect x="398" y="288" width="254" height="164" rx="5" fill="none" stroke="#8fbfae" stroke-width="2" opacity=".35"/>
+
+      <!-- Lichtkegel -->
+      <ellipse cx="220" cy="250" rx="200" ry="150" fill="url(#lichtG)"/>
+      <ellipse cx="755" cy="250" rx="190" ry="145" fill="url(#rotG)"/>
+      <ellipse cx="225" cy="450" rx="185" ry="140" fill="url(#lichtG)"/>
+      <ellipse cx="755" cy="580" rx="150" ry="110" fill="url(#lichtG)" opacity=".7"/>
+
+      <!-- Wände -->
+      <rect x="0" y="0" width="960" height="112" fill="url(#wandG)"/>
+      <rect x="0" y="104" width="960" height="10" fill="#0a161d"/>
+      <rect x="0" y="0" width="52" height="640" fill="url(#wandG)"/>
+      <rect x="908" y="0" width="52" height="640" fill="url(#wandG)"/>
+      <rect x="0" y="600" width="960" height="40" fill="url(#wandG)"/>
+      <g opacity=".25" stroke="#7fb0c4" stroke-width="1.5" fill="none">
+        <path d="M120 20 v84 M240 20 v84 M360 20 v84 M600 20 v84 M720 20 v84 M840 20 v84"/>
+      </g>
+      <!-- Fenster mit Mondlicht -->
+      <rect x="410" y="18" width="150" height="76" rx="4" fill="#1b3a4d" stroke="#5d829a" stroke-width="3"/>
+      <path d="M485 18 v76 M410 56 h150" stroke="#5d829a" stroke-width="3"/>
+      <circle cx="447" cy="40" r="11" fill="#e8f0f5" opacity=".8"/>
+
+      <!-- STATION 1: Werkbank mit Modellauto -->
+      <g id="st-werkbank">
+        <rect x="110" y="150" width="220" height="85" rx="6" fill="url(#holzG)" stroke="#3c2b1a" stroke-width="3"/>
+        <rect x="110" y="150" width="220" height="85" rx="6" fill="#8a6437" opacity=".55"/>
+        <g opacity=".3" stroke="#3c2b1a" stroke-width="1.5">
+          <line x1="110" y1="178" x2="330" y2="178"/><line x1="110" y1="206" x2="330" y2="206"/>
+        </g>
+        <!-- Modellauto -->
+        <g transform="translate(150,168)">
+          <path d="M2 22 q4 -12 16 -13 l8 -8 h22 l9 8 q13 1 16 13 z" fill="#c14b3c" stroke="#2c1414" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M28 9 h18 l6 8 h-28 z" fill="#a9d6e5" opacity=".85"/>
+          <circle cx="17" cy="23" r="5" fill="#1b1b1b"/><circle cx="57" cy="23" r="5" fill="#1b1b1b"/>
+        </g>
+        <!-- großes Auto als Foto an der Wand -->
+        <g transform="translate(190,60)">
+          <rect x="-60" y="-32" width="120" height="60" rx="3" fill="#0e2129" stroke="#c98b3a" stroke-width="2"/>
+          <path d="M-42 12 q6 -18 24 -20 l12 -12 h33 l14 12 q18 2 23 20 z" fill="#7d3126" opacity=".9"/>
+          <circle cx="-24" cy="13" r="7" fill="#101010"/><circle cx="36" cy="13" r="7" fill="#101010"/>
+        </g>
+        <!-- Werkzeuge -->
+        <g transform="translate(268,180)" opacity=".9">
+          <rect x="0" y="0" width="46" height="10" rx="3" fill="#8d949a"/>
+          <rect x="6" y="18" width="34" height="26" rx="3" fill="#3f5560" stroke="#6d838f" stroke-width="2"/>
+        </g>
+        <text x="220" y="143" text-anchor="middle" font-family="Baskerville, Georgia, serif" font-size="15" fill="#efe6d2" opacity=".75">Werkbank</text>
+        <circle class="marker" cx="220" cy="275" r="21" fill="none" stroke="#71d6b4" stroke-width="2.5" opacity=".55"/>
+      </g>
+
+      <!-- STATION 2: Fotolabor -->
+      <g id="st-fotolabor">
+        <rect x="640" y="150" width="230" height="85" rx="6" fill="#2f4550" stroke="#16262e" stroke-width="3"/>
+        <!-- Entwicklerschale -->
+        <rect x="660" y="172" width="80" height="44" rx="5" fill="#12303a" stroke="#4d7080" stroke-width="2"/>
+        <rect x="666" y="178" width="68" height="32" rx="3" fill="#2c6070" opacity=".8"/>
+        <!-- kleines Foto und Poster -->
+        <rect x="760" y="170" width="40" height="26" rx="2" fill="#efe6d2" stroke="#a08a5f" stroke-width="1.5"/>
+        <rect x="812" y="160" width="46" height="60" rx="2" fill="#efe6d2" stroke="#a08a5f" stroke-width="1.5"/>
+        <path d="M766 190 l10 -9 8 7 6 -5 v9 z" fill="#7f9aa5"/>
+        <path d="M818 208 l12 -18 10 12 8 -8 v18 z" fill="#7f9aa5"/>
+        <!-- Wäscheleine mit Abzügen -->
+        <path d="M650 62 q105 16 210 0" stroke="#9aa7ad" stroke-width="2" fill="none"/>
+        <g fill="#efe6d2" stroke="#a08a5f" stroke-width="1.5">
+          <rect x="666" y="66" width="34" height="26" rx="2"/>
+          <rect x="722" y="72" width="34" height="26" rx="2"/>
+          <rect x="784" y="70" width="34" height="26" rx="2"/>
+        </g>
+        <!-- Rotlicht -->
+        <circle cx="700" cy="128" r="9" fill="#ff7a5c"/>
+        <circle cx="700" cy="128" r="17" fill="#ff7a5c" opacity=".3"/>
+        <text x="755" y="143" text-anchor="middle" font-family="Baskerville, Georgia, serif" font-size="15" fill="#efe6d2" opacity=".75">Fotolabor</text>
+        <circle class="marker" cx="755" cy="275" r="21" fill="none" stroke="#71d6b4" stroke-width="2.5" opacity=".55"/>
+      </g>
+
+      <!-- STATION 3: Aquarien -->
+      <g id="st-aquarium">
+        <rect x="120" y="420" width="210" height="100" rx="6" fill="#3a2f26" stroke="#20180f" stroke-width="3"/>
+        <!-- kleines Becken -->
+        <rect x="136" y="438" width="74" height="62" rx="4" fill="url(#wasserG)" stroke="#cfe8ef" stroke-width="2.5"/>
+        <path d="M140 452 q18 6 34 0 t30 0" stroke="#dff3f7" stroke-width="2" fill="none" opacity=".6"/>
+        <ellipse cx="166" cy="474" rx="8" ry="5" fill="#f2c46a"/>
+        <path d="M158 474 l-8 -5 v10 z" fill="#f2c46a"/>
+        <!-- großes Becken -->
+        <rect x="224" y="430" width="94" height="80" rx="4" fill="url(#wasserG)" stroke="#cfe8ef" stroke-width="2.5"/>
+        <path d="M228 446 q22 7 44 0 t42 0" stroke="#dff3f7" stroke-width="2" fill="none" opacity=".6"/>
+        <ellipse cx="266" cy="476" rx="11" ry="7" fill="#f2c46a"/>
+        <path d="M255 476 l-11 -7 v14 z" fill="#f2c46a"/>
+        <path d="M296 508 q4 -26 -6 -38 M304 508 q6 -22 0 -32" stroke="#5fbf8a" stroke-width="3" fill="none"/>
+        <text x="225" y="545" text-anchor="middle" font-family="Baskerville, Georgia, serif" font-size="15" fill="#efe6d2" opacity=".75">Aquarienschau</text>
+        <circle class="marker" cx="225" cy="385" r="21" fill="none" stroke="#71d6b4" stroke-width="2.5" opacity=".55"/>
+      </g>
+
+      <!-- Deko: Kisten -->
+      <g>
+        <rect x="480" y="470" width="100" height="76" rx="5" fill="#5d4226" stroke="#2c1e10" stroke-width="3"/>
+        <path d="M480 508 h100 M530 470 v76" stroke="#2c1e10" stroke-width="3"/>
+      </g>
+      <!-- Deko: Regal an der Wand -->
+      <g transform="translate(252,26)" opacity=".9">
+        <rect x="0" y="0" width="120" height="66" rx="3" fill="#233d4a" stroke="#0c1c23" stroke-width="2"/>
+        <path d="M0 33 h120" stroke="#0c1c23" stroke-width="2"/>
+        <rect x="8" y="8" width="14" height="22" fill="#c98b3a"/><rect x="28" y="12" width="12" height="18" fill="#71d6b4"/>
+        <rect x="48" y="6" width="16" height="24" fill="#d4674f"/><rect x="12" y="40" width="20" height="20" fill="#8fbfae"/>
+        <rect x="44" y="42" width="14" height="18" fill="#f2c46a"/>
+      </g>
+
+      <!-- TÜR mit Tastenfeld -->
+      <g id="st-tuer">
+        <rect x="694" y="596" width="122" height="44" rx="3" fill="#3d4d55" stroke="#0c1c23" stroke-width="3"/>
+        <rect x="704" y="604" width="102" height="30" rx="2" fill="#2b3b43"/>
+        <circle cx="792" cy="619" r="5" fill="#c98b3a"/>
+        <rect x="836" y="592" width="40" height="52" rx="4" fill="#0d2029" stroke="#c98b3a" stroke-width="2"/>
+        <g fill="#f2c46a" opacity=".85">
+          <rect x="844" y="600" width="8" height="7" rx="1.5"/><rect x="858" y="600" width="8" height="7" rx="1.5"/>
+          <rect x="844" y="612" width="8" height="7" rx="1.5"/><rect x="858" y="612" width="8" height="7" rx="1.5"/>
+          <rect x="844" y="624" width="8" height="7" rx="1.5"/><rect x="858" y="624" width="8" height="7" rx="1.5"/>
+        </g>
+        <text x="755" y="588" text-anchor="middle" font-family="Baskerville, Georgia, serif" font-size="15" fill="#efe6d2" opacity=".75">Ausgang</text>
+        <circle class="marker" cx="755" cy="556" r="21" fill="none" stroke="#c98b3a" stroke-width="2.5" opacity=".55"/>
+      </g>
+
+      <!-- Spielfigur -->
+      <g id="fig">
+        <ellipse cx="0" cy="16" rx="15" ry="6" fill="#000" opacity=".35"/>
+        <g id="figSprite">
+          <rect x="-11" y="-8" width="22" height="26" rx="9" fill="#5b8f7d" stroke="#12262c" stroke-width="2"/>
+          <rect x="-7" y="2" width="14" height="16" rx="4" fill="#efe6d2" opacity=".85"/>
+          <circle cx="0" cy="-15" r="11" fill="#e8c39b" stroke="#12262c" stroke-width="2"/>
+          <path d="M-11 -18 q11 -12 22 0 q-11 -6 -22 0z" fill="#3b2b22"/>
+          <circle cx="-4" cy="-14" r="1.7" fill="#22303a"/><circle cx="4" cy="-14" r="1.7" fill="#22303a"/>
+        </g>
+      </g>
+    </svg>
+    <div class="tipp" id="tipp"></div>
+  </div>
+
+  <div id="steuerung">
+    <div class="dpad" aria-label="Steuerkreuz">
+      <button class="leer"></button>
+      <button data-dir="up" aria-label="nach oben">▲</button>
+      <button class="leer"></button>
+      <button data-dir="left" aria-label="nach links">◀</button>
+      <button class="leer"></button>
+      <button data-dir="right" aria-label="nach rechts">▶</button>
+      <button class="leer"></button>
+      <button data-dir="down" aria-label="nach unten">▼</button>
+      <button class="leer"></button>
+    </div>
+    <p class="hilfe">Tippe auf den Boden, um dorthin zu laufen. Am Ziel erscheint die grüne Taste.</p>
+    <button id="aktion">Untersuchen</button>
+  </div>
+</div>
+
+<!-- Story -->
+<div class="overlay an" id="ovStart">
+  <div class="karte">
+    <h2>Es ist 18:04 Uhr.</h2>
+    <p class="ort">Museum „Maßstab" · Modellbauwerkstatt im Untergeschoss</p>
+    <p>Du hast dich im Praktikum verzettelt und die Schließzeit verpasst. Als du zur Tür gehst, rastet die Sicherheitsverriegelung ein. Auf dem Tastenfeld daneben klebt ein Zettel in der Handschrift von Werkstattleiter Kessler:</p>
+    <div class="daten">
+      „Der dreistellige Code steht nicht auf Papier, sondern in den Ausstellungsstücken.<br>
+      Erste Ziffer: <b>Werkbank</b>. Zweite Ziffer: <b>Fotolabor</b>. Dritte Ziffer: <b>Aquarienschau</b>.<br>
+      Wer bei uns arbeitet, weiß, wie Längen, Flächen und Volumen zusammenhängen."
+    </div>
+    <p>Drei Aufgaben, drei Ziffern, eine Tür. Los geht's.</p>
+    <div class="aktionen"><button class="prim" onclick="schliesse('ovStart')">Werkstatt betreten</button></div>
+  </div>
+</div>
+
+<!-- Aufgaben -->
+<div class="overlay" id="ovAufgabe">
+  <div class="karte">
+    <h2 id="aTitel"></h2>
+    <p class="ort" id="aOrt"></p>
+    <p id="aStory"></p>
+    <div class="daten" id="aDaten"></div>
+    <div class="schritte" id="aSchritte"></div>
+    <p class="frage" id="aFrage"></p>
+    <div class="eingabe">
+      <input id="aInput" type="text" inputmode="decimal" autocomplete="off" placeholder="Antwort">
+      <span class="einheit" id="aEinheit"></span>
+      <button class="prim" id="aPruefen">Prüfen</button>
+    </div>
+    <div class="rueck" id="aRueck"></div>
+    <div class="aktionen">
+      <button class="sek" onclick="schliesse('ovAufgabe')">Station verlassen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ziffer gefunden -->
+<div class="overlay" id="ovFund">
+  <div class="karte">
+    <h2 id="fTitel">Ziffer gefunden</h2>
+    <p class="ort" id="fOrt"></p>
+    <div class="fund"><span class="ziffer" id="fZiffer"></span></div>
+    <p id="fText"></p>
+    <div class="aktionen"><button class="prim" onclick="schliesse('ovFund')">Weiter</button></div>
+  </div>
+</div>
+
+<!-- Tastenfeld -->
+<div class="overlay" id="ovTuer">
+  <div class="karte">
+    <h2>Tastenfeld am Ausgang</h2>
+    <p class="ort">Dreistelliger Code · Reihenfolge: Werkbank, Fotolabor, Aquarienschau</p>
+    <div class="anzeige" id="tAnzeige">– – –</div>
+    <div class="rueck" id="tRueck"></div>
+    <div class="tastenfeld" id="tFeld"></div>
+    <div class="aktionen">
+      <button class="sek" onclick="schliesse('ovTuer')">Zurücktreten</button>
+      <button class="sek" id="tLoeschen">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Geschafft -->
+<div class="overlay" id="ovEnde">
+  <div class="karte">
+    <h2>Die Tür springt auf.</h2>
+    <p class="ort">18:41 Uhr · Ausgang frei</p>
+    <p>Kessler wartet oben an der Treppe mit zwei Bechern Kakao. „Und? Was passiert mit der Fläche, wenn man alle Längen verdreifacht?" Du weißt es jetzt.</p>
+    <div class="daten">
+      Längen wachsen mit <b>k</b>.<br>
+      Flächen wachsen mit <b>k²</b>.<br>
+      Volumen wachsen mit <b>k³</b>.
+    </div>
+    <div class="aktionen"><button class="prim" onclick="location.reload()">Noch einmal spielen</button></div>
+  </div>
+</div>
+
+<script>
+/* =======================================================
+   Aufgaben
+   ======================================================= */
+const STATIONEN = {
+  werkbank: {
+    titel: "Der Bausatz auf der Werkbank",
+    ort: "Station 1 · Werkbank",
+    ziffer: "6",
+    slot: 0,
+    story: "Auf der Werkbank steht ein halbfertiges Modellauto im Maßstab 1 : 18. Daneben liegt das Datenblatt des echten Wagens – und ein Zettel: „Wer beide Zahlen richtig umrechnet, findet die erste Ziffer im Handschuhfach.\u201c",
+    daten: "Maßstab des Modells: <b>1 : 18</b><br>Frontscheibe des echten Autos: <b>0,72 m²</b><br>Kofferraum des echten Autos: <b>380 Liter</b><br>1 m² = 10 000 cm²  ·  1 Liter = 1000 cm³",
+    fundText: "Im Handschuhfach des Modells steckt ein winziger Messingchip mit einer eingestanzten Ziffer.",
+    schritte: [
+      { frage: "Alle Längen werden im Verhältnis 1 : 18 verkleinert. In welchem Verhältnis 1 : n stehen dann die Flächen? Gib die Zahl n ein.",
+        einheit: "", loesung: 324, tol: 0,
+        tipps: ["Eine Fläche hat zwei Ausdehnungen – Länge und Breite. Beide werden verkleinert.",
+                "Der Flächenfaktor ist k². Hier ist k = 1/18.",
+                "Rechne 18 · 18 aus."] },
+      { frage: "Wie groß ist die Frontscheibe des Modells? Rechne in cm² und runde auf eine Nachkommastelle.",
+        einheit: "cm²", loesung: 22.22, tol: 0.6,
+        tipps: ["Rechne zuerst 0,72 m² in cm² um – erst danach verkleinern.",
+                "0,72 m² sind 7200 cm². Diese Fläche ist beim Modell um den Flächenfaktor kleiner.",
+                "Teile 7200 durch die Zahl, die du in der ersten Aufgabe herausbekommen hast."] },
+      { frage: "In welchem Verhältnis 1 : n stehen die Volumen von echtem Auto und Modell? Gib n ein.",
+        einheit: "", loesung: 5832, tol: 0,
+        tipps: ["Ein Körper hat drei Ausdehnungen – Länge, Breite und Höhe.",
+                "Der Volumenfaktor ist k³ mit k = 1/18.",
+                "Du kannst dein Zwischenergebnis 324 weiterverwenden und noch einmal mit 18 multiplizieren."] },
+      { frage: "Wie groß ist der Kofferraum des Modells? Rechne in cm³ und runde auf eine Nachkommastelle.",
+        einheit: "cm³", loesung: 65.16, tol: 1.2,
+        tipps: ["Wandle 380 Liter zuerst in cm³ um.",
+                "380 Liter sind 380 000 cm³. Das ist das echte Volumen, nicht das des Modells.",
+                "Teile 380 000 durch den Volumenfaktor aus der vorigen Teilaufgabe."] }
+    ]
+  },
+  fotolabor: {
+    titel: "Der Vergrößerer im Fotolabor",
+    ort: "Station 2 · Fotolabor",
+    ziffer: "3",
+    slot: 1,
+    story: "Unter dem Rotlicht liegt ein Abzug im Format 10 cm × 15 cm. An der Wand hängt dasselbe Motiv als Poster: 40 cm × 60 cm. Auf der Rückseite des Posters ist etwas notiert – lesbar wird es erst, wenn die Rechnung stimmt.",
+    daten: "Foto: <b>10 cm × 15 cm</b><br>Poster: <b>40 cm × 60 cm</b><br>Beide Bilder sind zueinander ähnlich.",
+    fundText: "Auf der Rückseite des Posters steht in Bleistift eine einzelne Ziffer.",
+    schritte: [
+      { frage: "Mit welchem Streckfaktor k wurde das Foto vergrößert?",
+        einheit: "", loesung: 4, tol: 0,
+        tipps: ["Vergleiche jeweils Seiten, die einander entsprechen – kurze mit kurzer, lange mit langer.",
+                "Teile eine Posterseite durch die passende Fotoseite.",
+                "Rechne 40 : 10 und prüfe zur Kontrolle, ob 60 : 15 dasselbe ergibt."] },
+      { frage: "Um welchen Faktor vergrößert sich dabei die Fläche des Bildes?",
+        einheit: "", loesung: 16, tol: 0,
+        tipps: ["Die Fläche wächst nicht mit k, sondern stärker – Länge und Breite werden gestreckt.",
+                "Der Flächenfaktor ist k².",
+                "Quadriere deinen Streckfaktor aus der ersten Teilaufgabe."] },
+      { frage: "Wie groß ist die Fläche des Posters in cm²?",
+        einheit: "cm²", loesung: 2400, tol: 1,
+        tipps: ["Es gibt zwei Wege: direkt aus den Postermaßen oder über den Flächenfaktor.",
+                "Die Fotofläche beträgt 10 · 15 = 150 cm².",
+                "Multipliziere 150 cm² mit dem Flächenfaktor – oder rechne 40 · 60. Beides muss dasselbe ergeben."] }
+    ]
+  },
+  aquarium: {
+    titel: "Zwei Becken in der Aquarienschau",
+    ort: "Station 3 · Aquarienschau",
+    ziffer: "9",
+    slot: 2,
+    story: "Zwei Becken stehen nebeneinander, das größere ist ein maßstabsgetreuer Nachbau des kleineren. Am Podest klebt ein Schild: „Die Ziffer liegt unter dem Kies des großen Beckens – wer die Maße kennt, weiß, wo er greifen muss.\u201c",
+    daten: "Kleines Becken: <b>40 cm × 25 cm × 30 cm</b>, Inhalt <b>30 Liter</b><br>Großes Becken: Inhalt <b>240 Liter</b><br>Beide Becken sind zueinander ähnlich.",
+    fundText: "Unter dem Kies liegt ein wasserdichtes Plättchen mit einer Ziffer.",
+    schritte: [
+      { frage: "Um welchen Faktor ist das Volumen des großen Beckens größer als das des kleinen?",
+        einheit: "", loesung: 8, tol: 0,
+        tipps: ["Du brauchst nur die beiden Literangaben zu vergleichen.",
+                "Teile das größere Volumen durch das kleinere.",
+                "Rechne 240 : 30."] },
+      { frage: "Welcher Streckfaktor k gehört zu diesem Volumenfaktor?",
+        einheit: "", loesung: 2, tol: 0,
+        tipps: ["Das Volumen wächst mit k³ – hier musst du diesen Schritt rückwärts gehen.",
+                "Gesucht ist die Zahl k mit k · k · k = Volumenfaktor.",
+                "Probiere: Welche Zahl ergibt dreimal mit sich selbst multipliziert 8?"] },
+      { frage: "Wie lang ist das große Becken?",
+        einheit: "cm", loesung: 80, tol: 0,
+        tipps: ["Für einzelne Längen gilt der Streckfaktor k selbst, nicht k² oder k³.",
+                "Multipliziere die Länge des kleinen Beckens mit k.",
+                "Rechne 40 cm · k mit deinem k aus der vorigen Teilaufgabe."] },
+      { frage: "Wie hoch ist das große Becken?",
+        einheit: "cm", loesung: 60, tol: 0,
+        tipps: ["Auch die Höhe wird mit demselben Faktor k gestreckt – bei ähnlichen Körpern gilt das für jede Länge.",
+                "Nimm die Höhe des kleinen Beckens und multipliziere mit k.",
+                "Rechne 30 cm · k."] },
+      { frage: "Um welchen Faktor vergrößert sich die Glasfläche des Beckens?",
+        einheit: "", loesung: 4, tol: 0,
+        tipps: ["Glas ist eine Fläche, kein Volumen – der Faktor ist also nicht 8.",
+                "Für Flächen gilt der Faktor k².",
+                "Quadriere dein k. Der Glasbedarf wächst dadurch deutlich langsamer als der Wasserinhalt."] }
+    ]
+  }
+};
+const CODE = STATIONEN.werkbank.ziffer + STATIONEN.fotolabor.ziffer + STATIONEN.aquarium.ziffer;
+
+/* =======================================================
+   Raum, Figur, Bewegung
+   ======================================================= */
+const svg = document.getElementById('raum');
+const fig = document.getElementById('fig');
+const sprite = document.getElementById('figSprite');
+const tippEl = document.getElementById('tipp');
+const btnAktion = document.getElementById('aktion');
+
+const R = 18;                     // Radius der Figur
+const GRENZE = {x0:74, x1:886, y0:142, y1:578};
+const HINDERNISSE = [
+  {x:110,y:150,w:220,h:85},       // Werkbank
+  {x:640,y:150,w:230,h:85},       // Fotolabor
+  {x:120,y:420,w:210,h:100},      // Aquarienpodest
+  {x:480,y:470,w:100,h:76}        // Kisten
+];
+const PUNKTE = [
+  {id:'werkbank',  x:220, y:275, label:'Werkbank untersuchen'},
+  {id:'fotolabor', x:755, y:275, label:'Fotolabor untersuchen'},
+  {id:'aquarium',  x:225, y:385, label:'Becken untersuchen'},
+  {id:'tuer',      x:755, y:556, label:'Tastenfeld benutzen'}
+];
+
+let pos = {x:500, y:360};
+let ziel = null;
+let richtung = 1;
+let schritt = 0;
+const tasten = {up:false, down:false, left:false, right:false};
+const geloest = {};
+let aktiveStation = null;
+let spielLaeuft = false;
+
+function bewege(dx, dy, v){
+  const nx = pos.x + dx*v, ny = pos.y + dy*v;
+  let bewegt = false;
+  if(!blockiert(nx, pos.y)){ pos.x = nx; bewegt = true; }
+  if(!blockiert(pos.x, ny)){ pos.y = ny; bewegt = true; }
+  return bewegt;
+}
+
+function blockiert(x, y){
+  if(x < GRENZE.x0 || x > GRENZE.x1 || y < GRENZE.y0 || y > GRENZE.y1) return true;
+  for(const h of HINDERNISSE){
+    if(x > h.x - R && x < h.x + h.w + R && y > h.y - R && y < h.y + h.h + R) return true;
+  }
+  return false;
+}
+
+let festSeit = 0;
+let letzte = performance.now();
+function schleife(jetzt){
+  const dt = Math.min((jetzt - letzte)/1000, .05);
+  letzte = jetzt;
+  let dx = 0, dy = 0;
+  if(tasten.left) dx -= 1;
+  if(tasten.right) dx += 1;
+  if(tasten.up) dy -= 1;
+  if(tasten.down) dy += 1;
+
+  if(dx || dy){ ziel = null; }
+  else if(ziel){
+    const zx = ziel.x - pos.x, zy = ziel.y - pos.y;
+    const d = Math.hypot(zx, zy);
+    if(d < 6){ ziel = null; }
+    else { dx = zx/d; dy = zy/d; }
+  }
+
+  const laenge = Math.hypot(dx, dy);
+  if(laenge > 0 && spielLaeuft){
+    dx /= laenge; dy /= laenge;
+    const v = 230 * dt;
+    const vorher = {x:pos.x, y:pos.y};
+    if(!bewege(dx, dy, v) && ziel){
+      // um Möbel herumgehen: Richtung schrittweise abdrehen
+      for(const grad of [25,-25,50,-50,75,-75,95,-95]){
+        const w = grad*Math.PI/180;
+        const rx = dx*Math.cos(w) - dy*Math.sin(w);
+        const ry = dx*Math.sin(w) + dy*Math.cos(w);
+        if(bewege(rx, ry, v)) break;
+      }
+    }
+    if(pos.x === vorher.x && pos.y === vorher.y) festSeit += dt; else festSeit = 0;
+    if(festSeit > .8) { ziel = null; festSeit = 0; }
+    if(dx < -.1) richtung = -1;
+    if(dx > .1) richtung = 1;
+    schritt += dt*11;
+  } else {
+    schritt = 0; festSeit = 0;
+  }
+
+  const bob = Math.sin(schritt)*2.2;
+  fig.setAttribute('transform', `translate(${pos.x.toFixed(1)} ${pos.y.toFixed(1)})`);
+  sprite.setAttribute('transform', `scale(${richtung*1.15} 1.15) translate(0 ${bob.toFixed(2)})`);
+
+  pruefeNaehe();
+  requestAnimationFrame(schleife);
+}
+requestAnimationFrame(schleife);
+
+function pruefeNaehe(){
+  let treffer = null;
+  for(const p of PUNKTE){
+    if(Math.hypot(p.x - pos.x, p.y - pos.y) < 68){ treffer = p; break; }
+  }
+  if(treffer !== aktiveStation){
+    aktiveStation = treffer;
+    if(treffer){
+      btnAktion.textContent = treffer.label;
+      btnAktion.classList.add('bereit');
+      zeigeTipp(geloest[treffer.id] ? 'Hier ist alles erledigt.' : treffer.label);
+    } else {
+      btnAktion.classList.remove('bereit');
+      zeigeTipp('');
+    }
+  }
+}
+let tippTimer;
+function zeigeTipp(text){
+  clearTimeout(tippTimer);
+  if(!text){ tippEl.classList.remove('an'); return; }
+  tippEl.textContent = text;
+  tippEl.classList.add('an');
+  tippTimer = setTimeout(()=>tippEl.classList.remove('an'), 2600);
+}
+
+/* Marker-Zustände */
+function markerAktualisieren(){
+  const paare = {werkbank:'st-werkbank', fotolabor:'st-fotolabor', aquarium:'st-aquarium'};
+  for(const id in paare){
+    const m = document.querySelector('#'+paare[id]+' .marker');
+    if(geloest[id]){ m.setAttribute('stroke','#f2c46a'); m.setAttribute('opacity','.22'); }
+  }
+}
+
+/* Steuerung: Tastatur */
+const map = {ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right', w:'up', s:'down', a:'left', d:'right', W:'up', S:'down', A:'left', D:'right'};
+addEventListener('keydown', e=>{
+  if(map[e.key]){ tasten[map[e.key]] = true; e.preventDefault(); }
+  if((e.key === 'Enter' || e.key === ' ') && aktiveStation && !offenerDialog()) { oeffneStation(); e.preventDefault(); }
+});
+addEventListener('keyup', e=>{ if(map[e.key]) tasten[map[e.key]] = false; });
+
+/* Steuerung: Steuerkreuz */
+document.querySelectorAll('.dpad button[data-dir]').forEach(b=>{
+  const dir = b.dataset.dir;
+  const an = e=>{ e.preventDefault(); tasten[dir] = true; };
+  const aus = e=>{ e.preventDefault(); tasten[dir] = false; };
+  b.addEventListener('touchstart', an, {passive:false});
+  b.addEventListener('touchend', aus, {passive:false});
+  b.addEventListener('touchcancel', aus, {passive:false});
+  b.addEventListener('mousedown', an);
+  b.addEventListener('mouseup', aus);
+  b.addEventListener('mouseleave', aus);
+});
+
+/* Steuerung: Tippen auf den Boden */
+function svgPunkt(evt){
+  const r = svg.getBoundingClientRect();
+  const p = evt.touches ? evt.touches[0] : evt;
+  const skala = Math.min(r.width/960, r.height/640);
+  const versatzX = (r.width - 960*skala)/2;
+  const versatzY = (r.height - 640*skala)/2;
+  return { x:(p.clientX - r.left - versatzX)/skala, y:(p.clientY - r.top - versatzY)/skala };
+}
+svg.addEventListener('click', e=>{
+  if(!spielLaeuft) return;
+  const p = svgPunkt(e);
+  const nah = PUNKTE.find(s => Math.hypot(s.x - p.x, s.y - p.y) < 90);
+  ziel = nah ? {x:nah.x, y:nah.y} : (blockiert(p.x, p.y) ? null : p);
+});
+
+btnAktion.addEventListener('click', oeffneStation);
+
+/* =======================================================
+   Dialoge
+   ======================================================= */
+function offenerDialog(){ return !!document.querySelector('.overlay.an'); }
+function oeffne(id){ document.getElementById(id).classList.add('an'); spielLaeuft = false; }
+function schliesse(id){
+  document.getElementById(id).classList.remove('an');
+  spielLaeuft = !offenerDialog();
+  for(const k in tasten) tasten[k] = false;
+  ziel = null;
+}
+window.schliesse = schliesse;
+schliesse('ovStart'); document.getElementById('ovStart').classList.add('an'); spielLaeuft = false;
+
+/* --- Aufgabenlogik --- */
+let aktuell = null, index = 0, versuche = 0;
+const el = {
+  titel: document.getElementById('aTitel'), ort: document.getElementById('aOrt'),
+  story: document.getElementById('aStory'), daten: document.getElementById('aDaten'),
+  schritte: document.getElementById('aSchritte'), frage: document.getElementById('aFrage'),
+  input: document.getElementById('aInput'), einheit: document.getElementById('aEinheit'),
+  pruefen: document.getElementById('aPruefen'), rueck: document.getElementById('aRueck')
+};
+
+function oeffneStation(){
+  if(!aktiveStation) return;
+  const id = aktiveStation.id;
+  if(id === 'tuer'){ oeffneTuer(); return; }
+  if(geloest[id]){
+    zeigeTipp('Diese Station hast du schon gelöst.');
+    return;
+  }
+  aktuell = STATIONEN[id]; aktuell.id = id; index = 0; versuche = 0;
+  el.titel.textContent = aktuell.titel;
+  el.ort.textContent = aktuell.ort;
+  el.story.textContent = aktuell.story;
+  el.daten.innerHTML = aktuell.daten;
+  zeichneSchritt();
+  oeffne('ovAufgabe');
+  setTimeout(()=>el.input.focus(), 120);
+}
+
+function zeichneSchritt(){
+  const s = aktuell.schritte[index];
+  el.schritte.innerHTML = aktuell.schritte.map((_, i)=>
+    `<i class="${i < index ? 'fertig' : i === index ? 'aktiv' : ''}"></i>`).join('');
+  el.frage.innerHTML = `<span class="num">${index+1}/${aktuell.schritte.length}</span>${s.frage}`;
+  el.einheit.textContent = s.einheit;
+  el.input.value = '';
+  el.rueck.className = 'rueck';
+  versuche = 0;
+}
+
+function zahl(text){
+  const t = String(text).replace(/\s/g,'').replace(',', '.').replace(/[^0-9.\-]/g,'');
+  if(t === '' || t === '-' || t === '.') return null;
+  const n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+
+function pruefen(){
+  const s = aktuell.schritte[index];
+  const n = zahl(el.input.value);
+  if(n === null){
+    el.rueck.className = 'rueck falsch an';
+    el.rueck.innerHTML = '<b>Noch keine Zahl eingegeben.</b>Trage dein Ergebnis als Zahl ein, Komma oder Punkt sind beide möglich.';
+    return;
+  }
+  const passt = Math.abs(n - s.loesung) <= (s.tol || 0) + 1e-9;
+  if(passt){
+    el.rueck.className = 'rueck richtig an';
+    el.rueck.innerHTML = '<b>Stimmt.</b>' + (index + 1 < aktuell.schritte.length ? 'Weiter zur nächsten Teilaufgabe.' : 'Damit ist die Station gelöst.');
+    index++;
+    setTimeout(()=>{
+      if(index < aktuell.schritte.length){ zeichneSchritt(); el.input.focus(); }
+      else { stationGeloest(); }
+    }, 900);
+  } else {
+    const t = s.tipps[Math.min(versuche, s.tipps.length - 1)];
+    versuche++;
+    el.rueck.className = 'rueck falsch an';
+    el.rueck.innerHTML = `<b>Das passt noch nicht. Tipp ${Math.min(versuche, s.tipps.length)}:</b>${t}`;
+    el.input.select();
+  }
+}
+el.pruefen.addEventListener('click', pruefen);
+el.input.addEventListener('keydown', e=>{ if(e.key === 'Enter') pruefen(); });
+
+function stationGeloest(){
+  const st = aktuell;
+  geloest[st.id] = true;
+  const slot = document.getElementById('slot' + st.slot);
+  slot.innerHTML = '<span>' + st.ziffer + '</span>';
+  slot.classList.add('gefunden');
+  markerAktualisieren();
+  document.getElementById('fOrt').textContent = st.ort;
+  document.getElementById('fZiffer').textContent = st.ziffer;
+  document.getElementById('fText').textContent = st.fundText + ' Sie steht jetzt oben im Schloss-Feld.';
+  document.getElementById('ovAufgabe').classList.remove('an');
+  oeffne('ovFund');
+}
+
+/* --- Tastenfeld an der Tür --- */
+let eingabeCode = '';
+const tAnzeige = document.getElementById('tAnzeige');
+const tRueck = document.getElementById('tRueck');
+const tFeld = document.getElementById('tFeld');
+['1','2','3','4','5','6','7','8','9','0'].forEach((z, i)=>{
+  const b = document.createElement('button');
+  b.textContent = z;
+  if(z === '0') b.style.gridColumn = '2';
+  b.addEventListener('click', ()=>{
+    if(eingabeCode.length >= 3) return;
+    eingabeCode += z;
+    zeichneAnzeige();
+    if(eingabeCode.length === 3) pruefeCode();
+  });
+  tFeld.appendChild(b);
+});
+document.getElementById('tLoeschen').addEventListener('click', ()=>{
+  eingabeCode = ''; zeichneAnzeige(); tRueck.className = 'rueck';
+});
+function zeichneAnzeige(){
+  tAnzeige.textContent = (eingabeCode + '–––').slice(0,3).split('').join(' ');
+}
+function oeffneTuer(){
+  eingabeCode = ''; zeichneAnzeige();
+  const fehlend = ['werkbank','fotolabor','aquarium'].filter(k => !geloest[k]).length;
+  tRueck.className = 'rueck';
+  if(fehlend){
+    tRueck.className = 'rueck falsch an';
+    tRueck.innerHTML = `<b>Noch ${fehlend} ${fehlend === 1 ? 'Ziffer' : 'Ziffern'} offen.</b>Untersuche die Stationen, an denen der grüne Ring noch leuchtet.`;
+  }
+  oeffne('ovTuer');
+}
+function pruefeCode(){
+  if(eingabeCode === CODE){
+    tRueck.className = 'rueck richtig an';
+    tRueck.innerHTML = '<b>Der Riegel löst sich.</b>';
+    setTimeout(()=>{ document.getElementById('ovTuer').classList.remove('an'); oeffne('ovEnde'); }, 800);
+  } else {
+    tRueck.className = 'rueck falsch an';
+    tRueck.innerHTML = '<b>Der Code stimmt nicht.</b>Prüfe die Reihenfolge: erst Werkbank, dann Fotolabor, dann Aquarienschau.';
+    setTimeout(()=>{ eingabeCode = ''; zeichneAnzeige(); }, 900);
+  }
+}
+
+/* Scrollen/Zoomen auf dem iPad unterbinden */
+document.addEventListener('gesturestart', e=>e.preventDefault());
+document.getElementById('stage').addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+</script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiz Bundestagswahl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bitter:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F3; --paper:#FFFFFF; --ink:#1A1F24; --muted:#5A646E; --line:#C9D0D6;
+  --blue:#1F4E9C; --blue-soft:#E3EBF7; --ok:#22744A; --ok-soft:#E1F2E8;
+  --bad:#B3261E; --bad-soft:#F8E3E1; --warn:#C27A00;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13171B; --paper:#1D2328; --ink:#E9EDF0; --muted:#9AA5AF; --line:#36404A;
+    --blue:#7FA6E8; --blue-soft:#22324A; --ok:#5BC48A; --ok-soft:#1C3328;
+    --bad:#F08A80; --bad-soft:#3A2220; --warn:#E8A93A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13171B; --paper:#1D2328; --ink:#E9EDF0; --muted:#9AA5AF; --line:#36404A;
+  --blue:#7FA6E8; --blue-soft:#22324A; --ok:#5BC48A; --ok-soft:#1C3328;
+  --bad:#F08A80; --bad-soft:#3A2220; --warn:#E8A93A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Atkinson Hyperlegible",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:19px; line-height:1.5; -webkit-text-size-adjust:100%;
+}
+main{max-width:760px; margin:0 auto; padding:24px 20px 40px}
+h1,h2{font-family:"Bitter",Georgia,"Times New Roman",serif; line-height:1.2; margin:0}
+h1{font-size:2.1rem}
+h2{font-size:1.45rem}
+p{margin:0 0 1em}
+.muted{color:var(--muted)}
+button{font:inherit; color:inherit; cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue); outline-offset:3px}
+
+/* Stimmzettel-Karte */
+.ballot{
+  background:var(--paper); border:2px solid var(--ink); border-radius:6px;
+  padding:22px 22px 18px; position:relative;
+}
+.ballot::before{ /* blaue Zweitstimmen-Kante */
+  content:""; position:absolute; left:-2px; top:-2px; bottom:-2px; width:10px;
+  background:var(--blue); border-radius:6px 0 0 6px;
+}
+.ballot > *{margin-left:8px}
+
+/* Start */
+.start h1{margin-bottom:12px}
+.rules{margin:18px 0 22px; padding-left:1.2em}
+.rules li{margin-bottom:6px}
+label.field{display:block; font-weight:700; margin-bottom:6px}
+input[type=text]{
+  width:100%; font:inherit; padding:14px 14px; border:2px solid var(--line);
+  border-radius:6px; background:var(--bg); color:var(--ink); margin-bottom:22px;
+}
+.primary{
+  display:block; width:100%; padding:16px; border:0; border-radius:6px;
+  background:var(--blue); color:#fff; font-weight:700; font-size:1.1rem;
+}
+:root[data-theme="dark"] .primary{color:#0E1620}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .primary{color:#0E1620}}
+.primary:disabled{opacity:.45; cursor:default}
+
+/* Frage */
+.top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; gap:12px}
+.count{font-weight:700}
+.secs{font-variant-numeric:tabular-nums; font-weight:700; font-size:1.25rem}
+.secs.low{color:var(--bad)}
+.bar{height:10px; background:var(--line); border-radius:5px; overflow:hidden; margin-bottom:18px}
+.bar span{display:block; height:100%; width:100%; background:var(--blue); transform-origin:left center}
+.bar span.low{background:var(--bad)}
+.q{margin-bottom:18px; font-size:1.3rem}
+.opts{list-style:none; padding:0; margin:0}
+.opt{
+  display:flex; align-items:center; gap:16px; width:100%; text-align:left;
+  background:transparent; border:0; border-top:1px solid var(--line);
+  padding:14px 4px; min-height:64px;
+}
+.opts li:last-child .opt{border-bottom:1px solid var(--line)}
+.circle{
+  flex:0 0 40px; height:40px; border:2.5px solid var(--ink); border-radius:50%;
+  display:grid; place-items:center; font-weight:700; font-size:1.05rem; position:relative;
+}
+.circle svg{position:absolute; inset:4px; width:calc(100% - 8px); height:calc(100% - 8px); display:none}
+.opt.chosen .circle svg{display:block}
+.opt.chosen .circle .ltr{visibility:hidden}
+.opt:not(:disabled):active{background:var(--blue-soft)}
+.opt:disabled{cursor:default}
+.opt.right{background:var(--ok-soft)}
+.opt.right .circle{border-color:var(--ok); color:var(--ok)}
+.opt.wrong{background:var(--bad-soft)}
+.opt.wrong .circle{border-color:var(--bad); color:var(--bad)}
+.opt.faded{opacity:.55}
+
+.feedback{margin-top:18px; padding:14px 16px; border-radius:6px; display:none}
+.feedback.show{display:block}
+.feedback.ok{background:var(--ok-soft); border-left:5px solid var(--ok)}
+.feedback.bad{background:var(--bad-soft); border-left:5px solid var(--bad)}
+.feedback strong{display:block; margin-bottom:2px}
+.next{margin-top:18px; display:none}
+.next.show{display:block}
+
+/* Ergebnis */
+.score{font-family:"Bitter",Georgia,serif; font-size:4.2rem; font-weight:700; line-height:1; margin:14px 0 4px}
+.score small{font-size:1.6rem; color:var(--muted)}
+.grid{display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:22px 0 10px}
+.cell{border:2px solid var(--line); border-radius:6px; text-align:center; padding:8px 0; font-weight:700}
+.cell.r{border-color:var(--ok); color:var(--ok); background:var(--ok-soft)}
+.cell.f{border-color:var(--bad); color:var(--bad); background:var(--bad-soft)}
+.cell span{display:block; font-size:.8rem; font-weight:400}
+.reset{background:none; border:0; color:var(--muted); text-decoration:underline; font-size:.85rem; margin-top:26px; padding:8px 0}
+
+@media (prefers-reduced-motion: reduce){ .bar span{transition:none !important} }
+</style>
+</head>
+<body>
+<main id="app"></main>
+
+<script>
+const QUESTIONS = [
+  {q:"Wie viele Stimmen hat jede Wählerin und jeder Wähler bei der Bundestagswahl?",
+   o:["eine","zwei","drei","so viele, wie Parteien auf dem Stimmzettel stehen"], a:1,
+   why:"Jeder hat eine Erststimme und eine Zweitstimme."},
+  {q:"Mit der Erststimme wählt man …",
+   o:["eine Partei mit ihrer Landesliste.","direkt den Bundeskanzler oder die Bundeskanzlerin.","eine Kandidatin oder einen Kandidaten im eigenen Wahlkreis.","den Bundespräsidenten."], a:2,
+   why:"Die Erststimme geht an eine Person im eigenen Wahlkreis."},
+  {q:"Welche Stimme entscheidet darüber, wie viele Sitze eine Partei im Bundestag insgesamt erhält?",
+   o:["die Zweitstimme","die Erststimme","Erst- und Zweitstimme zählen genau gleich viel.","die Zahl der gewonnenen Wahlkreise"], a:0,
+   why:"Die Zweitstimme bestimmt die Sitzverteilung."},
+  {q:"Wie viele Sitze hat der Bundestag nach dem aktuellen Wahlrecht?",
+   o:["299","598","736","630"], a:3,
+   why:"Seit der Reform hat der Bundestag eine feste Größe von 630 Sitzen."},
+  {q:"In wie viele Wahlkreise ist Deutschland bei der Bundestagswahl eingeteilt?",
+   o:["299","16","630","400"], a:0,
+   why:"Es gibt 299 Wahlkreise."},
+  {q:"Was bedeutet das Prinzip der „Zweitstimmendeckung“?",
+   o:["Jeder Wahlkreissieger zieht immer in den Bundestag ein.","Ein Wahlkreissieger erhält seinen Sitz nur, wenn seiner Partei nach dem Zweitstimmenergebnis genug Sitze zustehen.","Die Zweitstimme zählt doppelt so viel wie die Erststimme.","Parteien erhalten zusätzliche Ausgleichsmandate."], a:1,
+   why:"Direktmandate müssen durch das Zweitstimmenergebnis der Partei „gedeckt“ sein."},
+  {q:"Was wurde durch die Wahlrechtsreform abgeschafft, damit der Bundestag nicht mehr wächst?",
+   o:["die Fünf-Prozent-Hürde","die Erststimme","Überhang- und Ausgleichsmandate","die Landeslisten der Parteien"], a:2,
+   why:"Ohne Überhang- und Ausgleichsmandate bleibt es bei 630 Sitzen."},
+  {q:"Was besagt die Fünf-Prozent-Hürde?",
+   o:["Eine Partei braucht in jedem Bundesland mindestens 5 % der Erststimmen.","Mindestens 5 % der Wahlberechtigten müssen wählen gehen, damit die Wahl gültig ist.","Keine Partei darf mehr als 5 % der Sitze erhalten.","Eine Partei braucht bundesweit mindestens 5 % der Zweitstimmen, um entsprechend ihrem Zweitstimmenergebnis Sitze zu erhalten."], a:3,
+   why:"Die Sperrklausel bezieht sich auf die bundesweiten Zweitstimmen."},
+  {q:"Unter welcher Bedingung kann eine Partei trotz weniger als 5 % der Zweitstimmen nach ihrem Zweitstimmenergebnis in den Bundestag einziehen (Grundmandatsklausel)?",
+   o:["wenn sie mindestens drei Wahlkreise gewinnt","wenn sie mindestens 4,5 % der Zweitstimmen erhält","wenn sie schon einmal im Bundestag vertreten war","wenn der Bundespräsident zustimmt"], a:0,
+   why:"Mit mindestens drei Direktmandaten greift die Grundmandatsklausel."},
+  {q:"Welcher der folgenden Begriffe ist KEIN Wahlrechtsgrundsatz nach Artikel 38 des Grundgesetzes?",
+   o:["geheim","unmittelbar","öffentlich","allgemein"], a:2,
+   why:"Die Grundsätze lauten: allgemein, unmittelbar, frei, gleich und geheim."},
+  {q:"Ein Arbeitgeber droht seinen Beschäftigten mit Kündigung, wenn sie nicht eine bestimmte Partei wählen. Welcher Wahlrechtsgrundsatz wird verletzt?",
+   o:["unmittelbar","frei","allgemein","gleich"], a:1,
+   why:"Druck auf die Wahlentscheidung verletzt die freie Wahl."},
+  {q:"Was bedeutet der Wahlrechtsgrundsatz „gleich“?",
+   o:["Alle Parteien bekommen gleich viele Sitze.","Alle Wahlberechtigten müssen dieselbe Partei wählen.","Jede Stimme hat das gleiche Gewicht.","Alle Kandidierenden müssen gleich alt sein."], a:2,
+   why:"Jede Stimme zählt gleich viel."},
+  {q:"Was kennzeichnet eine Mehrheitswahl?",
+   o:["Im Wahlkreis gewinnt die Person mit den meisten Stimmen; die Stimmen für die anderen Bewerber bleiben ohne Wirkung.","Die Sitze werden genau nach dem Stimmenanteil der Parteien verteilt.","Jede Partei erhält mindestens einen Sitz.","Nur Parteien mit absoluter Mehrheit dürfen antreten."], a:0,
+   why:"Bei der Mehrheitswahl bekommt der Gewinner im Wahlkreis den Sitz."},
+  {q:"Eine Partei erhält 20 % der Stimmen und bekommt dafür etwa 20 % der Sitze. Welches Wahlprinzip liegt zugrunde?",
+   o:["Mehrheitswahl","Direktwahl","Personenwahl","Verhältniswahl"], a:3,
+   why:"Bei der Verhältniswahl entsprechen die Sitze dem Stimmenanteil."},
+  {q:"Wie wird das Wahlsystem zur Bundestagswahl insgesamt bezeichnet?",
+   o:["reine Mehrheitswahl","personalisierte Verhältniswahl","reine Personenwahl","indirekte Mehrheitswahl"], a:1,
+   why:"Verhältniswahl mit einem Element der Personenwahl (Erststimme)."}
+];
+const LIMIT = 30;
+const KEY = "bt-quiz-v1";
+const LETTERS = ["A","B","C","D"];
+const CROSS = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5 L27 27 M27 5 L5 27" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>';
+
+const app = document.getElementById("app");
+let state = load() || {name:"", started:false, index:0, answers:[], open:false, done:false};
+let timer = null, deadline = 0;
+
+function load(){ try{ const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function render(){
+  // Eine Frage, die beim Neuladen offen war, gilt als nicht beantwortet.
+  if(state.started && !state.done && state.open && state.answers.length === state.index){
+    state.answers.push(null); state.open = false; save();
+  }
+  if(!state.started) return renderStart();
+  if(state.done) return renderResult();
+  if(state.answers.length > state.index) return renderQuestion(true);
+  renderQuestion(false);
+}
+
+function renderStart(){
+  app.innerHTML = `
+  <section class="ballot start">
+    <h1>Quiz: Bundestagswahl</h1>
+    <p class="muted">Wiederholung · 15 Fragen</p>
+    <ul class="rules">
+      <li>Für jede Frage hast du 30 Sekunden.</li>
+      <li>Du kannst jede Frage nur einmal beantworten. Tippe gut überlegt.</li>
+      <li>Ist die Zeit um, zählt die Frage als falsch.</li>
+      <li>Du kannst nicht zurückspringen.</li>
+    </ul>
+    <label class="field" for="name">Dein Name</label>
+    <input id="name" type="text" autocomplete="off" placeholder="Vor- und Nachname">
+    <button class="primary" id="go" disabled>Quiz starten</button>
+  </section>`;
+  const inp = document.getElementById("name"), go = document.getElementById("go");
+  inp.addEventListener("input", () => go.disabled = inp.value.trim().length < 2);
+  go.addEventListener("click", () => {
+    state.name = inp.value.trim(); state.started = true; save(); render();
+  });
+}
+
+function renderQuestion(answered){
+  const i = state.index, Q = QUESTIONS[i];
+  app.innerHTML = `
+  <section class="ballot">
+    <div class="top">
+      <span class="count">Frage ${i+1} von ${QUESTIONS.length}</span>
+      <span class="secs" id="secs" aria-live="off">${LIMIT} s</span>
+    </div>
+    <div class="bar" role="progressbar" aria-label="Verbleibende Zeit"><span id="bar"></span></div>
+    <h2 class="q">${esc(Q.q)}</h2>
+    <ul class="opts">
+      ${Q.o.map((t,k)=>`<li><button class="opt" data-k="${k}"><span class="circle"><span class="ltr">${LETTERS[k]}</span>${CROSS}</span><span>${esc(t)}</span></button></li>`).join("")}
+    </ul>
+    <div class="feedback" id="fb" role="status"></div>
+    <button class="primary next" id="next">${i === QUESTIONS.length-1 ? "Ergebnis anzeigen" : "Nächste Frage"}</button>
+  </section>`;
+  app.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => choose(+b.dataset.k)));
+  document.getElementById("next").addEventListener("click", advance);
+  window.scrollTo(0,0);
+  if(answered){ showFeedback(state.answers[i]); return; }
+  state.open = true; save();
+  startTimer();
+}
+
+function startTimer(){
+  deadline = Date.now() + LIMIT*1000;
+  tick(); timer = setInterval(tick, 100);
+}
+function tick(){
+  const left = Math.max(0, deadline - Date.now());
+  const s = Math.ceil(left/1000);
+  const secs = document.getElementById("secs"), bar = document.getElementById("bar");
+  if(!secs) return;
+  secs.textContent = s + " s";
+  secs.classList.toggle("low", s <= 5);
+  bar.style.transform = `scaleX(${left/(LIMIT*1000)})`;
+  bar.classList.toggle("low", s <= 5);
+  if(left <= 0) choose(null);
+}
+
+function choose(k){
+  if(state.answers.length > state.index) return; // schon beantwortet
+  clearInterval(timer);
+  state.answers.push(k); state.open = false; save();
+  showFeedback(k);
+}
+
+function showFeedback(k){
+  const Q = QUESTIONS[state.index];
+  const btns = app.querySelectorAll(".opt");
+  btns.forEach((b,idx) => {
+    b.disabled = true;
+    if(idx === k) b.classList.add("chosen");
+    if(idx === Q.a) b.classList.add("right");
+    else if(idx === k) b.classList.add("wrong");
+    else b.classList.add("faded");
+  });
+  const secs = document.getElementById("secs");
+  if(k === null){ secs.textContent = "0 s"; secs.classList.add("low"); document.getElementById("bar").style.transform = "scaleX(0)"; }
+  else secs.textContent = "–";
+  const fb = document.getElementById("fb");
+  const ok = k === Q.a;
+  fb.className = "feedback show " + (ok ? "ok" : "bad");
+  fb.innerHTML = `<strong>${ok ? "Richtig!" : (k === null ? "Zeit abgelaufen." : "Leider falsch.")}</strong>${ok ? "" : "Richtig ist " + LETTERS[Q.a] + ". "}${esc(Q.why)}`;
+  document.getElementById("next").classList.add("show");
+}
+
+function advance(){
+  if(state.index < QUESTIONS.length-1){ state.index++; save(); render(); }
+  else { state.done = true; save(); render(); }
+}
+
+function renderResult(){
+  const right = state.answers.filter((k,i) => k === QUESTIONS[i].a).length;
+  const n = QUESTIONS.length;
+  const msg = right >= 13 ? "Sehr stark – du kennst dich mit der Bundestagswahl richtig gut aus."
+            : right >= 10 ? "Gut gemacht! Schau dir die rot markierten Fragen noch einmal an."
+            : right >= 7  ? "Ein solider Anfang. Wiederhole die rot markierten Themen."
+            : "Hier lohnt sich eine gründliche Wiederholung, besonders bei den rot markierten Fragen.";
+  app.innerHTML = `
+  <section class="ballot">
+    <h2>Ergebnis von ${esc(state.name)}</h2>
+    <div class="score">${right}<small> / ${n}</small></div>
+    <p>${msg}</p>
+    <div class="grid" aria-label="Übersicht der Fragen">
+      ${state.answers.map((k,i)=>{
+        const r = k === QUESTIONS[i].a;
+        return `<div class="cell ${r?"r":"f"}">${i+1}<span>${r?"richtig":(k===null?"Zeit":"falsch")}</span></div>`;
+      }).join("")}
+    </div>
+    <p class="muted">Zeige dieses Ergebnis deiner Lehrkraft.</p>
+    <button class="reset" id="reset">Zurücksetzen (nur Lehrkraft)</button>
+  </section>`;
+  document.getElementById("reset").addEventListener("click", () => {
+    const code = prompt("Code der Lehrkraft eingeben:");
+    if(code && code.trim().toUpperCase() === "RESET"){
+      try{ localStorage.removeItem(KEY); }catch(e){}
+      state = {name:"", started:false, index:0, answers:[], open:false, done:false};
+      render();
+    }
+  });
+}
+
+render();
+</script>
+</body>
+</html>

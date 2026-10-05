@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Die Scherben von Proportanien</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Uncial+Antiqua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#3b2a1a; --parch:#fff8e6; --parch2:#f4e2bc; --edge:#a8723a;
+  --gold:#ffd77a; --gold2:#f0a93a; --violet:#6b4bb8; --ok:#3fae5a; --bad:#d9534f;
+  --night:#2c1f5c;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --night:#1d1442; } }
+:root[data-theme="dark"]{ --night:#1d1442; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; overflow:hidden; }
+body{
+  background:radial-gradient(circle at 70% 35%, #fff4fb 0%, #cdbdff 40%, #6f5cc9 80%, var(--night) 100%);
+  font-family:'Fredoka','Trebuchet MS',system-ui,sans-serif; color:var(--ink);
+  touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+}
+input{ -webkit-user-select:text; user-select:text; }
+#c{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+#fx{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:60; }
+.hidden{ display:none !important; }
+
+/* Buttons */
+.btn{ font-family:inherit; font-size:17px; font-weight:600; color:#4a2a0c; background:linear-gradient(#ffe39a,#f0a93a);
+  border:2px solid #9a5a1c; border-radius:14px; padding:10px 18px; box-shadow:0 4px 0 #9a5a1c; cursor:pointer; line-height:1.2; }
+.btn:active{ transform:translateY(3px); box-shadow:0 1px 0 #9a5a1c; }
+.btn:focus-visible,.opt:focus-visible,.pick:focus-visible,.chip:focus-visible{ outline:3px solid var(--violet); outline-offset:2px; }
+.btn.ghost{ background:linear-gradient(#fffdf6,#f1e3c4); }
+.btn.big{ font-size:20px; padding:13px 24px; }
+.btn.sm{ font-size:15px; padding:6px 11px; border-radius:11px; box-shadow:0 3px 0 #9a5a1c; }
+.btn.magic{ background:linear-gradient(#c3a8ff,#7b5ad6); color:#fff; border-color:#4b2f9a; box-shadow:0 4px 0 #4b2f9a; }
+
+/* Parchment */
+.parchment{ background:linear-gradient(160deg,#fffdf4 0%,var(--parch) 45%,var(--parch2) 100%);
+  border:3px solid var(--edge); border-radius:22px;
+  box-shadow:0 12px 40px rgba(30,10,60,.45), inset 0 0 50px rgba(168,114,58,.16); }
+h1,h2,.fancy{ font-family:'Uncial Antiqua','Fredoka',serif; font-weight:400; }
+
+/* HUD */
+#hud{ position:fixed; top:0; left:0; right:0; padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 0;
+  display:flex; justify-content:space-between; align-items:flex-start; gap:8px; pointer-events:none; z-index:10; }
+#hud > *{ pointer-events:auto; }
+.hgroup{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.pill{ background:rgba(255,250,236,.94); border:2px solid var(--edge); border-radius:999px; padding:5px 12px;
+  font-weight:600; box-shadow:0 3px 0 rgba(90,50,20,.35); display:inline-flex; align-items:center; gap:6px; font-size:16px; white-space:nowrap; }
+.pill .shard{ width:16px; height:19px; }
+.pill.me{ padding-left:5px; }
+.pill.me .av{ width:30px; height:30px; border-radius:50%; background:#e9ddff; display:grid; place-items:center; font-size:19px; }
+#minimap{ position:fixed; right:10px; top:calc(env(safe-area-inset-top,0px) + 58px); width:128px; height:128px;
+  border-radius:50%; border:3px solid var(--edge); box-shadow:0 4px 12px rgba(0,0,0,.3); z-index:9; background:#a8d982; }
+#camCtl{ position:fixed; right:10px; bottom:calc(env(safe-area-inset-bottom,0px) + 12px); display:grid; grid-template-columns:repeat(2,48px); gap:8px; z-index:9; }
+#camCtl button{ width:48px; height:48px; border-radius:50%; font-size:22px; font-family:inherit; font-weight:700; color:#4a2a0c;
+  background:rgba(255,250,236,.92); border:2px solid var(--edge); box-shadow:0 3px 0 rgba(90,50,20,.35); }
+body.talking #camCtl, body.talking #dpad{ display:none; }
+#dpad{ position:fixed; left:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 12px); display:grid; grid-template-columns:repeat(3,54px); grid-template-rows:repeat(3,54px); gap:4px; z-index:9; touch-action:none; }
+#dpad button{ border-radius:14px; font-size:24px; font-family:inherit; font-weight:700; color:#4a2a0c; background:rgba(255,250,236,.9); border:2px solid var(--edge); box-shadow:0 3px 0 rgba(90,50,20,.35); touch-action:none; -webkit-user-select:none; user-select:none; }
+#dpad button.on{ background:#ffd77a; transform:translateY(2px); box-shadow:0 1px 0 rgba(90,50,20,.35); }
+#dpad .talk{ font-size:22px; background:#efe6ff; }
+
+#toast{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 64px); transform:translate(-50%,-20px); opacity:0;
+  background:#3b2470; color:#fff; padding:10px 18px; border-radius:16px; font-weight:500; font-size:17px; z-index:50;
+  transition:opacity .3s, transform .3s; max-width:min(560px,86vw); text-align:center; box-shadow:0 6px 18px rgba(0,0,0,.35); pointer-events:none; }
+#toast.show{ opacity:1; transform:translate(-50%,0); }
+
+/* Dialog */
+#dialog{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+  width:min(820px, calc(100% - 20px)); display:flex; gap:14px; padding:14px 16px; z-index:20; }
+.portrait{ flex:0 0 74px; height:74px; border-radius:50%; display:grid; place-items:center; font-size:40px; border:3px solid var(--edge); box-shadow:inset 0 -6px 0 rgba(0,0,0,.12); }
+.dbody{ flex:1; min-width:0; }
+.dname{ font-family:'Uncial Antiqua',serif; color:var(--violet); font-size:19px; margin-bottom:2px; }
+.dtext{ font-size:18px; line-height:1.42; min-height:2.6em; }
+.dopts{ margin-top:6px; border-top:2px dashed rgba(168,114,58,.4); padding-top:4px; }
+.opt{ display:block; width:100%; text-align:left; font-family:inherit; font-size:17px; color:#5a2fa8; background:none; border:none;
+  padding:8px 8px; border-radius:10px; cursor:pointer; font-weight:500; }
+.opt:active,.opt:hover{ background:rgba(107,75,184,.12); }
+.opt span{ color:var(--gold2); }
+
+/* Modal */
+#modal{ position:fixed; inset:0; background:rgba(26,12,52,.55); display:flex; align-items:center; justify-content:center; z-index:40;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 14px); }
+#modalBox{ width:min(780px,100%); max-height:100%; overflow:auto; -webkit-overflow-scrolling:touch; padding:22px 24px; }
+#modalBox.shake{ animation:shake .4s; }
+@keyframes shake{ 20%{transform:translateX(-10px)} 40%{transform:translateX(9px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(4px)} }
+.mhead{ display:flex; gap:14px; align-items:center; margin-bottom:10px; }
+.micon{ flex:0 0 58px; height:58px; border-radius:50%; display:grid; place-items:center; font-size:32px; border:3px solid var(--edge); }
+.mkick{ font-size:15px; color:#8a5a2b; font-weight:500; }
+.mhead h2{ margin:0; font-size:26px; color:var(--violet); line-height:1.15; }
+.quote{ font-style:italic; color:#6a4a2a; margin:4px 0 10px; font-size:17px; }
+.task{ font-size:18px; line-height:1.5; background:#fffdf6; border:2px solid #e8d6ad; border-radius:14px; padding:12px 16px; }
+.fig{ display:block; width:100%; height:auto; max-height:250px; background:#fffdf6; border-radius:14px; border:2px solid #e8d6ad; margin:10px 0; }
+.heft{ display:flex; gap:10px; align-items:center; background:#efe6ff; border-radius:14px; padding:10px 14px; margin:12px 0 4px; font-size:16px; color:#4b2f9a; }
+.heft b{ font-size:24px; }
+.mbtns{ display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:16px; }
+details.tdet{ margin:6px 0 10px; }
+details.tdet summary{ cursor:pointer; font-weight:600; color:var(--violet); padding:6px 0; font-size:17px; }
+.note{ font-size:15px; color:#6a4a2a; margin:4px 0 8px; }
+.fld{ background:#fffdf6; border:2px solid #e8d6ad; border-radius:14px; padding:10px 14px; margin:8px 0; transition:border-color .2s, background .2s; }
+.fld > label{ display:block; font-weight:600; margin-bottom:6px; font-size:16px; }
+.fld.ok{ border-color:var(--ok); background:#effaee; }
+.fld.bad{ border-color:var(--bad); background:#fff0ee; }
+.inrow{ display:flex; align-items:center; gap:8px; }
+.inrow input{ font-family:inherit; font-size:20px; width:170px; padding:8px 12px; border:2px solid #c9a46a; border-radius:10px; background:#fff; color:var(--ink); }
+.inrow input:focus{ outline:3px solid #b99cff; }
+.unit{ font-weight:600; color:#8a5a2b; }
+.chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.chips.col{ flex-direction:column; align-items:stretch; }
+.chip{ font-family:inherit; font-size:16px; padding:8px 14px; border-radius:12px; border:2px solid #c9a46a; background:#fff; color:var(--ink); cursor:pointer; text-align:left; }
+.chip.on{ background:#7b5ad6; border-color:#4b2f9a; color:#fff; }
+.tfrow{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-bottom:1px dashed #e8d6ad; font-size:16px; }
+.tfrow:last-child{ border-bottom:none; }
+.tfb{ display:flex; gap:6px; flex:0 0 auto; }
+.tfb .chip{ padding:6px 12px; }
+.hint{ background:#fff6cf; border:2px solid #f0c94a; border-radius:12px; padding:10px 12px; margin:8px 0; font-size:16px; line-height:1.45; }
+.msg{ min-height:1.2em; font-weight:600; margin-top:8px; font-size:16px; }
+.msg.bad{ color:var(--bad); } .msg.warn{ color:#b0761a; }
+
+/* Reward */
+.reward{ text-align:center; }
+.reward .shardbig svg{ width:110px; height:132px; animation:spin 1.6s ease-out; filter:drop-shadow(0 0 16px #9fe6ff); }
+@keyframes spin{ 0%{ transform:scale(.2) rotate(-200deg); opacity:0 } 70%{ transform:scale(1.15) rotate(10deg); opacity:1 } 100%{ transform:scale(1) rotate(0) } }
+.reward h2{ color:var(--violet); font-size:30px; margin:8px 0 2px; }
+.plus{ font-size:26px; font-weight:700; color:#c07a10; }
+.breakdown{ color:#8a5a2b; font-size:15px; margin-bottom:12px; }
+.sol{ text-align:left; background:#fffdf6; border:2px solid #e8d6ad; border-radius:14px; padding:12px 14px; font-size:16px; line-height:1.5; }
+
+/* Quest book */
+.qrow{ display:flex; gap:12px; align-items:center; padding:10px 6px; border-bottom:2px dashed rgba(168,114,58,.3); }
+.qi{ flex:0 0 46px; height:46px; border-radius:50%; display:grid; place-items:center; font-size:25px; border:2px solid var(--edge); background:#fff; }
+.qt{ flex:1; min-width:0; font-size:16px; line-height:1.35; }
+.qt small{ color:#7a5a3a; font-size:14px; }
+.qrow.done .qt b{ color:var(--ok); }
+.qb{ display:flex; gap:6px; flex:0 0 auto; }
+.muted{ color:#8a6a4a; font-weight:400; }
+
+/* Screens */
+#screen{ position:fixed; inset:0; z-index:30; }
+#screen:empty{ display:none; }
+.center-wrap{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:20px; }
+.title-card{ text-align:center; max-width:640px; padding:30px 34px; }
+.title-card .kick{ color:#8a5a2b; font-size:18px; font-weight:500; }
+.title-card h1{ font-size:clamp(38px,6.4vw,64px); line-height:1.02; margin:10px 0 12px; color:#5a35b0;
+  text-shadow:0 3px 0 #ffd77a, 0 6px 18px rgba(107,75,184,.35); }
+.title-card .tag{ font-size:19px; line-height:1.45; margin:0 auto 20px; max-width:30em; }
+.title-card .btns{ display:flex; flex-direction:column; gap:12px; align-items:center; }
+.small{ font-size:15px; color:#7a5a3a; margin-top:16px; }
+.setup{ position:absolute; inset:0; display:flex; align-items:center; padding:20px 24px; padding-top:calc(env(safe-area-inset-top,0px) + 20px); }
+.setup .panel{ width:min(480px,100%); padding:22px 24px; max-height:100%; overflow:auto; }
+@media (orientation:portrait){ .setup{ align-items:flex-start; justify-content:center; } }
+.setup h2{ margin:0 0 12px; color:var(--violet); font-size:30px; }
+.setup h3{ margin:18px 0 8px; font-size:18px; }
+.namefield input{ font-family:inherit; font-size:21px; width:100%; padding:11px 14px; border:2px solid #c9a46a; border-radius:12px; background:#fff; margin-top:6px; color:var(--ink); }
+.namefield{ font-weight:600; }
+.picks{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.pick{ font-family:inherit; background:#fff; border:3px solid #e1caa0; border-radius:16px; padding:10px 6px; cursor:pointer; color:var(--ink); text-align:center; }
+.pick .em{ font-size:38px; display:block; }
+.pick b{ display:block; font-size:17px; margin-top:2px; }
+.pick small{ display:block; font-size:12.5px; line-height:1.3; color:#7a5a3a; margin-top:4px; }
+.pick.on{ border-color:#7b5ad6; background:#f1eaff; box-shadow:0 0 0 3px rgba(123,90,214,.25); }
+.err{ color:var(--bad); font-weight:600; min-height:1.2em; margin:8px 0 0; }
+.story-card{ max-width:640px; padding:26px 30px; font-size:20px; line-height:1.55; }
+.story-card .pg{ color:#8a5a2b; font-size:15px; margin-bottom:6px; }
+.story-card ul{ padding-left:0; list-style:none; margin:6px 0; }
+.story-card li{ margin:7px 0; font-size:18px; }
+.story-card .mbtns{ justify-content:space-between; }
+
+/* Certificate */
+.cert{ text-align:center; }
+.cert .seal{ width:84px; height:84px; margin:0 auto; border-radius:50%; background:radial-gradient(#ffe7a0,#f0a93a); border:4px solid #b07a20; display:grid; place-items:center; font-size:44px; }
+.cert h2.certname{ font-size:38px; color:var(--violet); margin:6px 0; }
+.cert p{ font-size:18px; line-height:1.5; max-width:34em; margin:6px auto; }
+.stars{ font-size:44px; color:#f0b21f; letter-spacing:6px; text-shadow:0 2px 0 #b07a20; }
+.stars span{ color:#e2d3b2; text-shadow:none; }
+.stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:12px 0; }
+.stats div{ background:#fffdf6; border:2px solid #e8d6ad; border-radius:12px; padding:8px 4px; }
+.stats b{ display:block; font-size:21px; }
+.stats small{ color:#7a5a3a; }
+.cert table{ width:100%; border-collapse:collapse; font-size:15px; margin-top:8px; text-align:left; }
+.cert td{ padding:5px 6px; border-bottom:1px dashed #e1caa0; }
+.cert td:last-child{ text-align:right; font-weight:600; }
+@media (max-width:560px){ .stats{ grid-template-columns:repeat(2,1fr); } .picks small{ display:none; } }
+@media (prefers-reduced-motion: reduce){ .reward .shardbig svg{ animation:none; } #modalBox.shake{ animation:none; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="hgroup">
+    <div class="pill me"><span class="av" id="hAv">🐉</span><span id="hName">–</span></div>
+  </div>
+  <div class="hgroup" style="justify-content:center">
+    <div class="pill">⏱ <span id="hTime">00:00</span></div>
+    <div class="pill" id="hShards"></div>
+    <div class="pill">⭐ <span id="hPts">0</span></div>
+  </div>
+  <div class="hgroup">
+    <button class="btn sm" id="bQuest">📜 Questbuch</button>
+    <button class="btn sm ghost" id="bHelp" aria-label="Hilfe und Einstellungen">❔</button>
+  </div>
+</div>
+<canvas id="minimap" class="hidden" width="256" height="256"></canvas>
+<div id="camCtl" class="hidden">
+  <button data-c="l" aria-label="Kamera links drehen">⟲</button><button data-c="r" aria-label="Kamera rechts drehen">⟳</button>
+  <button data-c="in" aria-label="Heranzoomen">＋</button><button data-c="out" aria-label="Herauszoomen">－</button>
+</div>
+<div id="dpad" class="hidden">
+  <span></span><button data-k="f" aria-label="Vorwärts">▲</button><span></span>
+  <button data-k="l" aria-label="Links">◀</button><button class="talk" id="dTalk" aria-label="Sprechen">💬</button><button data-k="r" aria-label="Rechts">▶</button>
+  <span></span><button data-k="b" aria-label="Rückwärts">▼</button><span></span>
+</div>
+<div id="toast"></div>
+<div id="dialog" class="parchment hidden">
+  <div class="portrait" id="dPortrait"></div>
+  <div class="dbody"><div class="dname" id="dName"></div><div class="dtext" id="dText"></div><div class="dopts" id="dOpts"></div></div>
+</div>
+<div id="modal" class="hidden"><div class="parchment" id="modalBox"></div></div>
+<div id="screen"></div>
+<canvas id="fx"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SAVE_KEY='proportanien_save_v1';
+
+const CHARS={
+  dragon:{em:'🐉',label:'Drache',art:'kleiner Drache',desc:'Klein, grün, großes Ego. Spuckt Funken, wenn er aufgeregt ist.'},
+  unicorn:{em:'🦄',label:'Einhorn',art:'Einhorn',desc:'Regenbogenmähne, goldenes Horn. Glitzert ungefragt.'},
+  griffin:{em:'🦅',label:'Greif',art:'Greif',desc:'Halb Adler, halb Löwe, ganz cool. Behält immer den Überblick.'}
+};
+const SHARD_SVG='<svg viewBox="0 0 40 48" class="shard" aria-hidden="true"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#bfefff"/><stop offset="1" stop-color="#7fb2ff"/></linearGradient></defs><polygon points="20,2 36,16 30,46 6,38 3,14" fill="url(#sg)" stroke="#4a6fb5" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 2 L18 24 L30 46 M18 24 L3 14" fill="none" stroke="#fff" stroke-width="1.6" opacity=".85"/></svg>';
+
+/* ================= FIGURES (SVG) ================= */
+function gridSVG(cols,rows,u,pad,inner){
+  let s=`<svg viewBox="0 0 ${cols*u+2*pad} ${rows*u+2*pad}" class="fig" role="img"><g stroke="#d8c8a4" stroke-width="1">`;
+  for(let i=0;i<=cols;i++) s+=`<line x1="${pad+i*u}" y1="${pad}" x2="${pad+i*u}" y2="${pad+rows*u}"/>`;
+  for(let j=0;j<=rows;j++) s+=`<line x1="${pad}" y1="${pad+j*u}" x2="${pad+cols*u}" y2="${pad+j*u}"/>`;
+  return s+'</g>'+inner+'</svg>';
+}
+function pts(arr,rows,u,pad){ return arr.map(([x,y])=>`${pad+x*u},${pad+(rows-y)*u}`).join(' '); }
+const TXT='font-family="Fredoka,sans-serif" fill="#3b2a1a" text-anchor="middle" font-weight="600"';
+const FIG={
+  f1(){ return `<svg viewBox="0 0 410 150" class="fig" role="img"><g fill="#e6dccb" stroke="#4a3520" stroke-width="2">
+<rect x="10" y="30" width="135" height="90"/><rect x="162" y="45" width="40" height="60"/>
+<polygon points="215,78 272,78 297,42 240,42"/><rect x="232" y="100" width="50" height="25"/>
+<rect x="310" y="72" width="30" height="45" transform="rotate(45 325 94.5)"/><rect x="372" y="20" width="22" height="88"/></g>
+<g ${TXT} font-size="16"><text x="77" y="81">Original</text><text x="182" y="81">A</text><text x="256" y="66">B</text><text x="257" y="118">C</text><text x="325" y="100">D</text><text x="383" y="69">E</text></g></svg>`; },
+  f2(){ const u=14,p=8,R=8; const tri=(a,l,lx,ly)=>`<polygon points="${pts(a,R,u,p)}" fill="#e6dccb" stroke="#3b2a1a" stroke-width="2"/><text x="${p+lx*u}" y="${p+(R-ly)*u+5}" ${TXT} font-size="14">${l}</text>`;
+    return gridSVG(28,8,u,p, tri([[0,0],[9,0],[0,3]],'A',2.6,0.9)+tri([[10,7],[18,7],[14,5]],'B',14,6.25)+tri([[12,0],[16,0],[14,1]],'C',14,1.7)+tri([[20,0],[22,0],[21,7]],'D',21,1.6)+tri([[25,0],[27,0],[27,6]],'E',26.4,1.6)); },
+  f4(){ const u=26,p=8,R=7; const P=[[0,0],[4,0],[4,2],[6,2],[4,4],[0,2]].map(([x,y])=>[x+2,y+1]);
+    return gridSVG(10,7,u,p,`<polygon points="${pts(P,R,u,p)}" fill="#e6dccb" stroke="#3b2a1a" stroke-width="3" stroke-linejoin="round"/>`); },
+  f6(){ const u=34,p=10,R=5; const inner=[[1,1],[6,1],[2,4]]; const outer=inner.map(([x,y])=>[3+(x-3)*1.2,2+(y-2)*1.2]);
+    return gridSVG(8,5,u,p,`<polygon points="${pts(outer,R,u,p)}" fill="none" stroke="#6b4bb8" stroke-width="2" stroke-dasharray="7 5"/><polygon points="${pts(inner,R,u,p)}" fill="#e6dccb" stroke="#3b2a1a" stroke-width="2.5"/>
+<line x1="${p+6*u}" y1="${p+0.45*u}" x2="${p+7*u}" y2="${p+0.45*u}" stroke="#3b2a1a" stroke-width="2"/><line x1="${p+6*u}" y1="${p+0.2*u}" x2="${p+6*u}" y2="${p+0.7*u}" stroke="#3b2a1a" stroke-width="2"/><line x1="${p+7*u}" y1="${p+0.2*u}" x2="${p+7*u}" y2="${p+0.7*u}" stroke="#3b2a1a" stroke-width="2"/><text x="${p+6.5*u}" y="${p+1.2*u}" ${TXT} font-size="15">1 m</text>`); },
+  f8(){ return `<svg viewBox="0 0 260 178" class="fig" role="img"><polygon points="20,150 240,150 120,20" fill="#e6dccb" stroke="#3b2a1a" stroke-width="2.5"/><polygon points="70,85 180,85 120,20" fill="#c9b386" stroke="#3b2a1a" stroke-width="2.5"/>
+<line x1="120" y1="20" x2="120" y2="150" stroke="#6b4bb8" stroke-width="1.6" stroke-dasharray="5 4"/>
+<g ${TXT} font-size="15"><text x="12" y="166">A</text><text x="248" y="166">B</text><text x="120" y="14">C</text><text x="58" y="85">D</text><text x="192" y="85">E</text></g>
+<g font-family="Fredoka,sans-serif" fill="#6b4bb8" font-size="13" font-weight="600"><text x="130" y="172" text-anchor="middle">AB = 18 cm</text><text x="126" y="125">h꜀ = 12 cm</text></g></svg>`; },
+  f10(){ let s='<svg viewBox="0 0 420 130" class="fig" role="img">'; let x=12; [24,28,32,36].forEach(d=>{ const r=d*1.45; const cx=x+r, cy=60;
+      s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#f4c26b" stroke="#c47a2c" stroke-width="6"/>`;
+      for(let k=0;k<5;k++){ const a=k*1.3+0.4, rr=r*0.5; s+=`<circle cx="${cx+Math.cos(a)*rr}" cy="${cy+Math.sin(a)*rr}" r="${r*0.14}" fill="#d9483b"/>`; }
+      s+=`<text x="${cx}" y="${cy+r+18}" ${TXT} font-size="14">${d} cm</text>`; x+=2*r+14; }); return s+'</svg>'; },
+  f11(){ const cyl=(cx,r,h,base,col)=>`<path d="M${cx-r} ${base-h} L${cx-r} ${base} A${r} ${r*0.3} 0 0 0 ${cx+r} ${base} L${cx+r} ${base-h}" fill="${col}" stroke="#3b2a1a" stroke-width="2"/><ellipse cx="${cx}" cy="${base-h}" rx="${r}" ry="${r*0.3}" fill="#fffdf6" stroke="#3b2a1a" stroke-width="2"/>`;
+    return `<svg viewBox="0 0 300 150" class="fig" role="img">${cyl(80,24,48,120,'#b9e3c6')}${cyl(200,40,80,120,'#c9b8f2')}<g ${TXT} font-size="14"><text x="80" y="145">klein</text><text x="200" y="145">groß</text></g></svg>`; }
+};
+
+/* ================= TASKS / NPCs ================= */
+const NPCS=[
+{id:1,name:'Mirko',title:'Spiegelhändler',icon:'🪞',color:'#cfe2ff',area:'Marktplatz',pos:[-7,-7.6],
+ look:{robe:'#4f7fd6',skin:'#f2c9a0',hat:'cap',hatColor:'#2d4f99',beard:'#7a5230'},
+ greet:'Spieglein, Spieglein … ach, du bist gar kein Kunde? Schade. Seit dem Fluch verkaufe ich nix mehr.',
+ lore:'Verzerrus hat den Großen Spiegel zertrümmert. Jetzt zeigen alle meine Spiegel nur noch Quatsch: lange Nasen, platte Köpfe. Ich sah gestern aus wie ein Gurkenglas!',
+ intro:'Ich hab eine Scherbe gefunden – du kriegst sie, wenn du mir hilfst. Meine Zauberrahmen nehmen nur Bilder, die zum Original ÄHNLICH sind. Welche sind das?',
+ comeBack:'Kein Stress. Rechne in Ruhe in deinem Heft und komm wieder, wenn du das Ergebnis hast!',
+ thanks:'Genau die! Endlich wieder unverzerrte Bilder. Hier, die Scherbe gehört dir, {name}!',
+ doneLine:'Schau mal in meinen Spiegel – du siehst fabelhaft aus. Völlig unverzerrt!',
+ taskTitle:'Die Zauberrahmen', fig:'f1',
+ task:'Welche der Figuren sind zur Originalfigur ähnlich? <b>Begründe</b> in deinem Heft.',
+ fields:[{t:'multi',label:'Welche Figuren sind zum Original ähnlich?',opts:['A','B','C','D','E'],correct:['A','D']}],
+ hints:['Ähnlich heißt: Alle Längen werden mit demselben Faktor k vergrößert oder verkleinert, die Winkel bleiben gleich. Drehen ist erlaubt!','Miss die Seiten und vergleiche das Verhältnis kurze Seite : lange Seite. Beim Original ist es 2 : 3. Und: Hat die Figur überhaupt rechte Winkel?'],
+ solution:'A und D sind ähnlich: Sie haben das gleiche Seitenverhältnis 2 : 3 und die gleichen (rechten) Winkel wie das Original – sie sind nur gedreht. B hat andere Winkel, C und E ein anderes Seitenverhältnis.'},
+{id:2,name:'Trigona',title:'Kräuterhexe',icon:'🧙‍♀️',color:'#e2d4ff',area:'Kunstgasse (Westen)',pos:[-36,2.4],
+ look:{robe:'#6b3fa0',skin:'#c5e8a8',hat:'witch',hatColor:'#3a2160'},
+ greet:'Hihihi! Ein Fabelwesen in meiner Gasse! Pass auf, wo du hintrittst – da liegen Krötenbeine.',
+ lore:'Verzerrus? Der hat bei mir mal einen Schönheitstrank bestellt. Hat nicht gewirkt. Seitdem ist er beleidigt und zerdeppert Spiegel.',
+ intro:'Mein Kristalltrank funktioniert nur mit Dreiecken, die PAARWEISE ähnlich sind. Finde die Paare für mich!',
+ comeBack:'Rechne im Heft und komm wieder, wenn du das Ergebnis hast. Ich rühre so lange um. Blubb.',
+ thanks:'Blubb, blubb – der Trank brodelt! Nimm die Scherbe, sie lag ganz unten im Kessel.',
+ doneLine:'Möchtest du einen Trank probieren? Nein? Kluges Fabelwesen.',
+ taskTitle:'Kristall-Dreiecke', fig:'f2',
+ task:'Finde ähnliche Dreiecke. <b>Begründe</b> deine Antwort im Heft.',
+ fields:[{t:'multi',label:'Welche Paare sind zueinander ähnlich? (Wähle alle passenden Paare.)',opts:['A und B','A und D','A und E','B und C','B und E','C und D','D und E'],correct:['A und E','B und C']}],
+ hints:['Ähnliche Dreiecke stimmen in allen Winkeln überein. Im Gitter kannst du das über die Kästchen prüfen: Wie viele Kästchen geht es nach rechts, wie viele nach oben?','Es gibt zwei rechtwinklige Dreiecke – vergleiche das Verhältnis ihrer Katheten. Und es gibt zwei flache, gleichschenklige Dreiecke – vergleiche Grundseite und Höhe.'],
+ solution:'A und E sind ähnlich (beide rechtwinklig, Katheten im Verhältnis 3 : 1). B und C sind ähnlich (Grundseite : Höhe = 4 : 1, k = 2). Bei ähnlichen Dreiecken stimmen die entsprechenden Winkel und Seitenverhältnisse überein. D passt zu keinem.'},
+{id:3,name:'Grünfink',title:'Gärtner',icon:'🌻',color:'#d9f2c6',area:'Kunstgasse (Westen)',pos:[-26,-2.3],
+ look:{robe:'#5aa04a',skin:'#f0c08f',hat:'straw',hatColor:'#e8c86a'},
+ greet:'Psst! Nicht auf die Beete treten! Ach so, du willst nur reden.',
+ lore:'Seit dem Fluch wachsen meine Kürbisse eckig. ECKIG! Das ist doch nicht normal.',
+ intro:'Ich plane neue Rosenbeete – erst im Kleinen auf Papier. Zeichnest du mit?',
+ comeBack:'Lineal raus, Heft auf! Komm wieder, wenn du das Ergebnis hast.',
+ thanks:'Prächtig! Doppelte Seite heißt eben nicht doppelte Fläche. Hier, die Scherbe – sie lag zwischen den Radieschen.',
+ doneLine:'Meine Beete werden wunderschön. Und hoffentlich bald wieder rund … die Kürbisse, meine ich.',
+ taskTitle:'Rosenbeete im Maßstab',
+ task:'Zeichne ein Rechteck mit den Seitenlängen 6 cm und 9 cm. Konstruiere ein ähnliches Rechteck so, dass die kürzere Seite der Originalfigur<br>a) verdoppelt wird.<br>b) halbiert wird.<br>Wie verändern sich jeweils der Umfang und der Flächeninhalt?',
+ fields:[{t:'num',label:'a) Umfang des neuen Rechtecks',unit:'cm',ans:60,tol:0.01},{t:'num',label:'a) Flächeninhalt des neuen Rechtecks',unit:'cm²',ans:216,tol:0.01},
+         {t:'num',label:'b) Umfang des neuen Rechtecks',unit:'cm',ans:15,tol:0.01},{t:'num',label:'b) Flächeninhalt des neuen Rechtecks',unit:'cm²',ans:13.5,tol:0.01}],
+ hints:['Wird die kurze Seite verdoppelt, ist k = 2 – dann muss auch die lange Seite verdoppelt werden. Beim Halbieren ist k = 0,5.','Rechne Umfang und Fläche für alle Rechtecke aus. Vergleiche: Der Umfang ändert sich mit dem Faktor k, der Flächeninhalt mit k².'],
+ solution:'Original: U = 30 cm, A = 54 cm². a) k = 2: 12 cm × 18 cm, der Umfang verdoppelt sich auf 60 cm, die Fläche vervierfacht sich auf 216 cm². b) k = 0,5: 3 cm × 4,5 cm, der Umfang halbiert sich auf 15 cm, die Fläche wird ein Viertel: 13,5 cm².'},
+{id:4,name:'Pinselia',title:'Wappenmalerin',icon:'🎨',color:'#ffd6df',area:'Kunstgasse (Westen)',pos:[-17.5,2.6],
+ look:{robe:'#e0607e',skin:'#f5d0b0',hat:'beret',hatColor:'#c0392b',apron:'#ffffff'},
+ greet:'Ah, ein Modell! Halt still … nein, doch nicht. Du bewegst dich zu viel.',
+ lore:'Jedes Haus in Proportanien hat ein Wappen. Der Fluch hat sie alle verbogen. Ich male sie neu – in groß UND klein.',
+ intro:'Diese Fahnenform brauche ich einmal größer und einmal kleiner. Übertrag sie in dein Heft – Kästchen für Kästchen!',
+ comeBack:'Ein Kunstwerk braucht Zeit. Zeichne im Heft und komm wieder, wenn du fertig bist!',
+ thanks:'Bellissima! Exakt im Maßstab. Die Scherbe hab ich als Farbspiegel benutzt – jetzt gehört sie dir.',
+ doneLine:'Ich male gerade dein Porträt. Im Maßstab 1 : 1, selbstverständlich.',
+ taskTitle:'Wappen in Groß und Klein', fig:'f4',
+ task:'Übertrage die Originalfigur in dein Heft und verändere ihre Längen<br>a) mit dem Faktor k = 1,5<br>b) mit dem Faktor k = 0,5.',
+ note:'Zähle in deinen fertigen Zeichnungen die Kästchen:',
+ fields:[{t:'num',label:'a) Wie viele Kästchen breit ist deine Figur insgesamt?',unit:'Kästchen',ans:9,tol:0.01},{t:'num',label:'a) Wie viele Kästchen hoch ist sie bis zur Spitze?',unit:'Kästchen',ans:6,tol:0.01},
+         {t:'num',label:'b) Wie viele Kästchen breit ist deine Figur insgesamt?',unit:'Kästchen',ans:3,tol:0.01},{t:'num',label:'b) Wie lang ist die senkrechte linke Kante?',unit:'Kästchen',ans:1,tol:0.01}],
+ hints:['Jede Strecke wird mit k multipliziert: Bei k = 1,5 werden aus 2 Kästchen 3 Kästchen, bei k = 0,5 aus 2 Kästchen 1 Kästchen.','Übertrage die Eckpunkte: Zähle für jeden Eckpunkt die Kästchen nach rechts und nach oben (vom Punkt unten links aus) und multipliziere beide Zahlen mit k.'],
+ solution:'Die Originalfigur ist 6 Kästchen breit und 4 hoch, die linke Kante ist 2 Kästchen lang. a) Alles × 1,5: 9 breit, 6 hoch. b) Alles × 0,5: 3 breit, 2 hoch, linke Kante 1 Kästchen. Die Winkel bleiben gleich.'},
+{id:5,name:'Prof. Uhu',title:'Gelehrte Eule',icon:'🦉',color:'#f2e2c8',area:'Marktplatz (Brunnen)',pos:[4.8,4.8],owl:true,
+ greet:'Huhu! Professor Doktor Doktor Uhu, klügster Vogel des Dorfes. Laut eigener Aussage.',
+ lore:'Der Fluch hat meine Bibliothek durcheinandergewirbelt. Jetzt weiß ich nicht mehr, welche meiner Weisheiten wahr sind!',
+ intro:'Sechs Sätze – wahr oder falsch? Hilf mir beim Sortieren, dann gibt es eine Scherbe.',
+ comeBack:'Denke nach, notiere im Heft, komm zurück. So mache ich das auch. Meistens.',
+ thanks:'Huhuuu! Brillant. Fast so klug wie ich. Nimm die Scherbe!',
+ doneLine:'Wusstest du, dass alle Kreise ähnlich sind? Ach ja, das hast du mir ja erklärt.',
+ taskTitle:'Die Weisheiten des Professors',
+ task:'Wahr oder falsch? Zueinander ähnlich sind …<br>a) alle Strecken.<br>b) alle regelmäßigen Fünfecke.<br>c) alle Kreise.<br>d) alle rechtwinkligen gleichschenkligen Dreiecke.<br>e) alle symmetrischen Trapeze.<br>f) alle Dreiecke, die in ihren Winkeln übereinstimmen.<br><br>Skizziere für jede falsche Aussage ein Gegenbeispiel im Heft.',
+ fields:[{t:'tf',label:'Wahr oder falsch?',items:[{k:'a',txt:'alle Strecken'},{k:'b',txt:'alle regelmäßigen Fünfecke'},{k:'c',txt:'alle Kreise'},{k:'d',txt:'alle rechtwinkligen gleichschenkligen Dreiecke'},{k:'e',txt:'alle symmetrischen Trapeze'},{k:'f',txt:'alle Dreiecke mit gleichen Winkeln'}],correct:{a:true,b:true,c:true,d:true,e:false,f:true}}],
+ hints:['Frag dich bei jeder Aussage: Kann ich zwei Figuren dieser Sorte zeichnen, die NICHT ähnlich sind? Dann ist die Aussage falsch.','Bei regelmäßigen Fünfecken, Kreisen und rechtwinklig-gleichschenkligen Dreiecken ist die Form festgelegt – nur die Größe ändert sich. Ein Trapez kannst du flach und breit oder hoch und schmal zeichnen …'],
+ solution:'Wahr sind a, b, c, d und f. Falsch ist e: Ein symmetrisches Trapez kann flach und breit oder hoch und schmal sein – die Winkel sind dann verschieden, also sind die Trapeze nicht ähnlich.'},
+{id:6,name:'Leinwanda',title:'Segelmacherin',icon:'⛵',color:'#cdeefa',area:'Am Dorfteich (Süden)',pos:[-5.5,21],
+ look:{robe:'#2f8fb0',skin:'#d9a27a',hat:'bandana',hatColor:'#e04b3a'},
+ greet:'Ahoi! Na gut, wir sind nicht am Meer. Aber am Dorfteich. Das zählt!',
+ lore:'Der Fluch hat das Segel meines Bootes geschrumpft. Jetzt fahre ich nur noch im Kreis.',
+ intro:'Das neue Segel soll maßstabsgetreu auf 144 % der Fläche wachsen. Wie lang werden Grundseite und Höhe?',
+ comeBack:'Rechne im Heft und komm wieder, wenn du das Ergebnis hast. Ich flicke so lange Taue.',
+ thanks:'Leinen los! Perfekt berechnet. Die Scherbe hing an meinem Mast – hier!',
+ doneLine:'Mit dem neuen Segel bin ich die schnellste Kapitänin auf dem ganzen Teich. Und die einzige.',
+ taskTitle:'Das neue Segel', fig:'f6',
+ task:'Die Fläche des inneren Dreiecks wurde auf 144 % maßstabsgetreu vergrößert. Wie lang sind die Grundseite und die Höhe des äußeren Dreiecks? (1 Kästchen = 1 m)',
+ fields:[{t:'num',label:'Grundseite des äußeren Dreiecks',unit:'m',ans:6,tol:0.01},{t:'num',label:'Höhe des äußeren Dreiecks',unit:'m',ans:3.6,tol:0.01}],
+ hints:['144 % = 1,44. Das ist der Faktor für die FLÄCHE – also k². Wie groß ist dann k?','Aus k² = 1,44 folgt k = 1,2. Lies Grundseite und Höhe des inneren Dreiecks im Gitter ab und multipliziere beide mit k.'],
+ solution:'k² = 1,44 ⇒ k = 1,2. Grundseite: 1,2 · 5 m = 6 m. Höhe: 1,2 · 3 m = 3,6 m. Probe: ½ · 5 m · 3 m = 7,5 m² und ½ · 6 m · 3,6 m = 10,8 m² = 1,44 · 7,5 m² ✓'},
+{id:7,name:'Berta',title:'Baumeisterin',icon:'👷‍♀️',color:'#ffe2b8',area:'Handwerkergasse (Osten)',pos:[18,-2.4],
+ look:{robe:'#e88b2e',skin:'#e8b48c',hat:'helmet',hatColor:'#ffd23f'},
+ greet:'Helm auf, hier ist Baustelle! … Na gut, du darfst trotzdem näher kommen.',
+ lore:'Ich soll das Rathaus wieder aufbauen. Aber der Fluch hat die Maßstäbe auf meinen Plänen gelöscht.',
+ intro:'Bestimm mir die Vergrößerungsfaktoren – sonst wird das Rathaus so groß wie eine Hundehütte.',
+ comeBack:'Ab ins Heft damit. Komm wieder, wenn du das Ergebnis hast – ich mische so lange Zement.',
+ thanks:'Na bitte, jetzt stimmt der Maßstab! Hier, die Scherbe lag im Zement. Ist schon sauber. Fast.',
+ doneLine:'Das Rathaus wird toll. Im Maßstab 1 : 1, versteht sich.',
+ taskTitle:'Die verlorenen Maßstäbe',
+ task:'Bestimme den Vergrößerungsfaktor k:<br>a) Eine Dachkante ist im Plan 16,8 cm lang, in Wirklichkeit ist sie 8,40 m.<br>b) Eine Wohnfläche von 48 m² wird in der Bauzeichnung durch eine Fläche von 48 cm² dargestellt.',
+ fields:[{t:'num',label:'a) Vergrößerungsfaktor k',unit:'',ans:50,tol:0.01,recip:true},{t:'num',label:'b) Vergrößerungsfaktor k',unit:'',ans:100,tol:0.01,recip:true}],
+ hints:['a) Rechne beide Längen in dieselbe Einheit um: 8,40 m = 840 cm. Dann teilen!','b) Vorsicht, Flächen! Das Flächenverhältnis ist k². Es gilt 1 m² = 10 000 cm². Danach die Wurzel ziehen.'],
+ solution:'a) k = 840 cm : 16,8 cm = 50. b) k² = 48 m² : 48 cm² = 1 m² : 1 cm² = 10 000 ⇒ k = 100.'},
+{id:8,name:'Glanzfried',title:'Glasermeister',icon:'🪟',color:'#d6f3f7',area:'Handwerkergasse (Osten)',pos:[26,2.6],
+ look:{robe:'#5fb3c6',skin:'#f2c9a0',hat:'hair',hatColor:'#cfcfcf',beard:'#dcdcdc',glasses:true},
+ greet:'Vorsicht, Glas! Bitte nicht mit dem Schwanz wedeln.',
+ lore:'Das Dreiecksfenster vom Rathaus ist beim Fluch zersprungen – genau entlang der Mittellinie. Typisch Verzerrus.',
+ intro:'Ich muss wissen, wie viel Glas ich für die beiden Dreiecke brauche. Und wie die Flächen zusammenhängen.',
+ comeBack:'Rechne sorgfältig im Heft – Glas verzeiht keine Fehler. Komm wieder, wenn du das Ergebnis hast.',
+ thanks:'Glasklar! Das kleine Dreieck passt viermal ins große – wer hätte das gedacht? Die Scherbe ist für dich.',
+ doneLine:'Ich poliere gerade. Du kannst dich schon spiegeln.',
+ taskTitle:'Das Dreiecksfenster', fig:'f8',
+ task:'Das Dreieck ABC hat die Grundseite AB = 18 cm und die zugehörige Höhe h<sub>c</sub> = 12 cm. D und E sind die Mittelpunkte der Seiten AC und BC. Ohne Beweis kannst du davon ausgehen, dass DE ∥ AB gilt.<br>Bestimme die Flächeninhalte der beiden Dreiecke ABC und DEC. In welchem Verhältnis stehen sie zueinander?',
+ fields:[{t:'num',label:'Flächeninhalt Dreieck ABC',unit:'cm²',ans:108,tol:0.01},{t:'num',label:'Flächeninhalt Dreieck DEC',unit:'cm²',ans:27,tol:0.01},{t:'num',label:'Verhältnis A(ABC) : A(DEC) = ? : 1',unit:': 1',ans:4,tol:0.01,recip:true}],
+ hints:['ABC und DEC haben den Winkel bei C gemeinsam, die anderen Winkel sind Stufenwinkel an Parallelen – also sind sie ähnlich. Wie groß ist k, wenn D und E die Seitenmitten sind?','Für das große Dreieck gilt A = ½ · g · h. Die Längen stehen im Verhältnis 2 : 1, die Flächen also im Verhältnis k² = 4.'],
+ solution:'Gleiche Winkel ⇒ ähnlich, Längenverhältnis k = 2, Flächenverhältnis k² = 4. A(ABC) = ½ · 18 cm · 12 cm = 108 cm², A(DEC) = ¼ · 108 cm² = 27 cm².'},
+{id:9,name:'Knut',title:'Schreiner',icon:'🪚',color:'#f0dcc4',area:'Handwerkergasse (Osten)',pos:[35,-2.4],
+ look:{robe:'#8a5a33',skin:'#e8b48c',hat:'cap',hatColor:'#4e7a3a',beard:'#c4632a',apron:'#c9a57a'},
+ greet:'Moin. Ich bau Kisten. Große Kisten, kleine Kisten. Viele Kisten.',
+ lore:'Der Fluch hat meine Werkstatt verhext. Jetzt passt keine Kiste mehr in die andere.',
+ intro:'Ich will eine große Schubladenbox bauen, die komplett mit kleinen Boxen gefüllt wird – und die geometrisch ähnlich ist.',
+ comeBack:'Gut Ding will Weile haben. Rechne im Heft und komm wieder.',
+ thanks:'Passt, wackelt nicht und hat keine Luft. Die Scherbe gehört dir!',
+ doneLine:'Kiste in Kiste in Kiste … Ich bin ein glücklicher Schreiner.',
+ taskTitle:'Kisten in Kisten',
+ task:'Mehrere kleine Boxen (Größe 1) sollen eine große quaderförmige Schubladenbox (Größe 2) vollständig ausfüllen. Die große Box ist den kleinen geometrisch ähnlich.<br>Begründe, dass eine natürliche Zahl als Vergrößerungsfaktor k sinnvoll ist.<br>Gib zwei verschiedene Maße der großen Box an, wenn die kleinen Boxen die Maße 10 cm × 6 cm × 4 cm haben. Wie viele Boxen würden jeweils hineinpassen?',
+ note:'Prüfe deine Begründung und deine Ergebnisse für k = 2 und k = 3:',
+ fields:[{t:'single',label:'Warum ist eine natürliche Zahl als k sinnvoll?',opts:['Bei z. B. k = 1,5 würden nur 1,5 Boxen in jede Richtung passen – die große Box wäre mit ganzen Boxen nicht vollständig gefüllt.','Weil Kommazahlen bei Ähnlichkeit grundsätzlich nicht erlaubt sind.','Weil eine Box immer genau doppelt so groß sein muss.'],correct:0},
+         {t:'num',label:'k = 2: Wie viele kleine Boxen passen hinein?',unit:'Boxen',ans:8,tol:0.01},{t:'num',label:'k = 3: Wie lang ist die große Box?',unit:'cm',ans:30,tol:0.01},{t:'num',label:'k = 3: Wie viele kleine Boxen passen hinein?',unit:'Boxen',ans:27,tol:0.01}],
+ hints:['Stell dir vor, k wäre 1,5: Wie viele kleine Boxen passen dann der Länge nach in die große Box?','Bei k = 2 werden Länge, Breite und Höhe verdoppelt. In jede Richtung passen dann 2 Boxen – insgesamt also 2 · 2 · 2 Boxen.'],
+ solution:'Mit k = 1,5 passten nur 1,5 Boxen in jede Richtung – die große Box wäre mit ganzen Boxen nicht ausfüllbar. k = 2: 20 cm × 12 cm × 8 cm, 2³ = 8 Boxen. k = 3: 30 cm × 18 cm × 12 cm, 3³ = 27 Boxen.'},
+{id:10,name:'Luigi',title:'Pizzabäcker',icon:'🍕',color:'#ffd9c9',area:'Marktplatz',pos:[7,-7.6],
+ look:{robe:'#ffffff',skin:'#f0c08f',hat:'chef',hatColor:'#ffffff',mustache:'#3b2414',apron:'#e74c3c'},
+ greet:'Mamma mia! Ein hungriges Fabelwesen! Pizza?',
+ lore:'Seit dem Fluch kann ich nicht mehr rechnen. Gestern hab ich die Riesenpizza für 4,51 € verkauft. Ruiniert bin ich!',
+ intro:'Die kleine Pizza mit 24 cm kostet 4,50 €. Was sollen die großen kosten? Aber fair, eh!',
+ comeBack:'Rechne im Heft, ich knete so lange den Teig. Komm wieder, wenn du das Ergebnis hast!',
+ thanks:'Perfetto! Nach der Fläche, das ist fair. Hier, die Scherbe … sie war im Teig. Scusi.',
+ doneLine:'Für dich gibt es heute die 36-cm-Pizza zum fairen Preis. Prego!',
+ taskTitle:'Faire Pizzapreise', fig:'f10',
+ task:'Eine Pizza wird mit dem Durchmesser 24 cm, 28 cm, 32 cm oder 36 cm angeboten. Die kleinste Pizza kostet 4,50 €. Mache einen sinnvollen Preisvorschlag für die größeren Pizzen.',
+ note:'Gib Preise an, die zur Pizzafläche passen (auf ganze Cent gerundet).',
+ fields:[{t:'num',label:'Pizza mit 28 cm',unit:'€',ans:6.125,tol:0.006},{t:'num',label:'Pizza mit 32 cm',unit:'€',ans:8,tol:0.006},{t:'num',label:'Pizza mit 36 cm',unit:'€',ans:10.125,tol:0.006}],
+ hints:['Fair ist ein Preis, der zur Menge Pizza passt – also zur Fläche des Kreises, nicht zum Durchmesser!','Berechne k = d : 24 (z. B. 28 : 24 = 7/6). Die Fläche wächst mit k², also gilt: Preis = k² · 4,50 €.'],
+ solution:'Der Preis richtet sich nach der Kreisfläche, die wächst mit k². 28 cm: k = 7/6, k² = 49/36 ⇒ ≈ 6,13 €. 32 cm: k = 4/3, k² = 16/9 ⇒ 8,00 €. 36 cm: k = 3/2, k² = 9/4 ⇒ ≈ 10,13 €.'},
+{id:11,name:'Zylindrus',title:'Alchemist',icon:'⚗️',color:'#dcd6ff',area:'Turmweg (Norden)',pos:[2.2,-23],
+ look:{robe:'#3a4fa0',skin:'#f2c9a0',hat:'wizard',hatColor:'#2a3880',beard:'#f2f2f2'},
+ greet:'Sei gegrüßt, Fabelwesen. Ich braue Tränke in zylindrischen Gläsern. Ähnlichen Gläsern!',
+ lore:'Ohne den Großen Spiegel kann ich meine Tränke nicht prüfen. Aber meine Scherbe rücke ich nicht einfach so heraus.',
+ intro:'Zwei ähnliche Zylinder: Die Oberfläche des kleinen ist 36 % der Oberfläche des großen. Was folgt daraus für Längen und Volumen?',
+ comeBack:'Alchemie braucht Geduld. Rechne im Heft und komm wieder, wenn du das Ergebnis hast.',
+ thanks:'Eureka! Längen, Flächen, Volumen – du beherrschst sie alle. Nimm die Scherbe!',
+ doneLine:'Mein neuer Trank heißt „k hoch drei“. Schmeckt nach Volumen.',
+ taskTitle:'Die Zaubertrank-Zylinder', fig:'f11',
+ task:'Die Oberfläche eines kleinen Zylinders beträgt 36 % der Oberfläche eines großen Zylinders. In welchem Verhältnis stehen die Höhen, die Radien und die Volumina, wenn man von ähnlichen Zylindern ausgeht? Gib ein Beispiel für die Maße an.',
+ note:'Du kannst z. B. 0,6 oder 6:10 eingeben.',
+ fields:[{t:'num',label:'Verhältnis der Radien (und Höhen) klein : groß',unit:'',ans:0.6,tol:0.003,recip:true},{t:'num',label:'Verhältnis der Volumina klein : groß',unit:'',ans:0.216,tol:0.002,recip:true}],
+ hints:['Die Oberfläche ist eine Fläche. 36 % bedeutet also k² = 0,36.','Aus k² = 0,36 folgt k = 0,6 – das gilt für Radien und Höhen. Volumina ändern sich mit k³.'],
+ solution:'k² = 36/100 ⇒ k = 6/10 = 0,6. Radien und Höhen stehen im Verhältnis 6 : 10, die Volumina im Verhältnis k³ = 216 : 1000. Beispiel: klein r = 6 cm, h = 3 cm; groß r = 10 cm, h = 5 cm.'}
+];
+const GUARD={id:'guard',name:'Spiegelgeist',title:'Hüter des Spiegels',icon:'👻',color:'#dff2ff',area:'Spiegelturm (Norden)',pos:[0,-32.6],ghost:true};
+const NPC_BY={}; NPCS.forEach(n=>NPC_BY[n.id]=n);
+
+/* ================= STATE ================= */
+let S=null;
+function newState(name,ch){ return {name,char:ch,elapsed:0,tasks:{},hints:{},wrong:{},points:{},finished:false,finalTime:0}; }
+function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)); }catch(e){} }
+function loadSave(){ try{ const r=localStorage.getItem(SAVE_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+const countDone=()=>NPCS.filter(n=>S.tasks[n.id]==='done').length;
+const totalPts=()=>Object.values(S.points).reduce((a,b)=>a+b,0);
+const sumObj=o=>Object.values(o).reduce((a,b)=>a+b,0);
+function calcPts(id){ return Math.max(40,100-15*(S.hints[id]||0)-10*(S.wrong[id]||0)); }
+const fmt=s=>s.replace(/\{name\}/g,S?S.name:'').replace(/\{art\}/g,S?CHARS[S.char].art:'');
+function fmtTime(sec){ sec=Math.floor(sec); const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60; const p=n=>String(n).padStart(2,'0'); return h?`${h}:${p(m)}:${p(s)}`:`${p(m)}:${p(s)}`; }
+
+/* ================= SOUND ================= */
+let AC=null, soundOn=true;
+function sfx(type){
+  if(!soundOn) return;
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume();
+    const seqs={click:[[660,.05]],ok:[[523,.11],[659,.11],[784,.11],[1047,.3]],bad:[[260,.14],[196,.26]],hint:[[880,.08],[1175,.14]],win:[[523,.15],[659,.15],[784,.15],[1047,.15],[1319,.45]],pop:[[440,.06],[660,.08]]};
+    const seq=seqs[type]||seqs.click; let t=AC.currentTime;
+    seq.forEach(([f,d])=>{ const o=AC.createOscillator(), g=AC.createGain(); o.type=type==='bad'?'square':'triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(type==='bad'?0.06:0.14,t+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d+0.03); t+=d*0.85; });
+  }catch(e){}
+}
+
+/* ================= THREE BASICS ================= */
+const canvas=$('#c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setClearColor(0x000000,0);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(50,1,0.1,500);
+const grad=new THREE.DataTexture(new Uint8Array([120,120,120,255, 180,180,180,255, 235,235,235,255]),3,1,THREE.RGBAFormat);
+grad.minFilter=grad.magFilter=THREE.NearestFilter; grad.generateMipmaps=false; grad.needsUpdate=true;
+const matCache={}, dsCache={};
+function M(c){ if(!matCache[c]) matCache[c]=new THREE.MeshToonMaterial({color:c,gradientMap:grad}); return matCache[c]; }
+function MDS(c){ if(!dsCache[c]) dsCache[c]=new THREE.MeshToonMaterial({color:c,gradientMap:grad,side:THREE.DoubleSide}); return dsCache[c]; }
+function mesh(geo,col,x,y,z,parent){ const m=new THREE.Mesh(geo,typeof col==='string'?M(col):col); m.position.set(x||0,y||0,z||0); m.castShadow=true; m.receiveShadow=true; if(parent) parent.add(m); return m; }
+const SPH=(r,w,h)=>new THREE.SphereGeometry(r,w||14,h||10);
+const CYL=(a,b,h,s)=>new THREE.CylinderGeometry(a,b,h,s||12);
+const BOX=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const CONE=(r,h,s)=>new THREE.ConeGeometry(r,h,s||10);
+
+/* ================= CREATURES ================= */
+function wingGeo(){ const s=new THREE.Shape(); s.moveTo(0,0); s.quadraticCurveTo(0.45,0.55,0.95,0.6); s.lineTo(0.8,0.25); s.lineTo(0.62,0.32); s.lineTo(0.55,0.02); s.lineTo(0.36,0.12); s.lineTo(0.25,-0.15); s.lineTo(0,0); return new THREE.ShapeGeometry(s); }
+function featherGeo(){ const s=new THREE.Shape(); s.moveTo(0,0); s.quadraticCurveTo(0.5,0.55,1.05,0.5); s.lineTo(0.92,0.3); s.lineTo(0.98,0.2); s.lineTo(0.78,0.07); s.lineTo(0.8,-0.04); s.lineTo(0.52,-0.1); s.lineTo(0.22,-0.12); s.lineTo(0,0); return new THREE.ShapeGeometry(s); }
+function addWings(rig,geo,col,y,z,P,sc){ for(const s of [-1,1]){ const w=new THREE.Group(); w.position.set(s*0.2,y,z); const m=new THREE.Mesh(geo,MDS(col)); m.castShadow=true; m.scale.setScalar(sc||1); w.add(m); w.scale.x=s; w.userData.s=s; rig.add(w); P.wings.push(w); } }
+function legGroup(rig,x,y,z,len,r,col,footCol,ph,P){ const g=new THREE.Group(); g.position.set(x,y,z); rig.add(g); mesh(CYL(r,r*0.9,len,10),col,0,-len/2,0,g); mesh(CYL(r*1.15,r*1.15,0.1,10),footCol,0,-len+0.03,0.02,g); g.userData.ph=ph; P.legs.push(g); return g; }
+
+function makeDragon(){
+  const g=new THREE.Group(), rig=new THREE.Group(); g.add(rig); const P={rig,legs:[],wings:[],tail:null};
+  const G='#62c771', L='#dff6b0';
+  mesh(SPH(0.48,18,14),G,0,0.82,0,rig).scale.set(1,1.15,1);
+  mesh(SPH(0.34),L,0,0.78,0.24,rig).scale.set(1,1.25,0.7);
+  const head=new THREE.Group(); head.position.set(0,1.52,0.08); rig.add(head);
+  mesh(SPH(0.4,18,14),G,0,0,0,head);
+  mesh(SPH(0.24),L,0,-0.1,0.3,head).scale.set(1.15,0.8,1);
+  for(const s of [-1,1]){
+    mesh(SPH(0.1),'#ffffff',s*0.16,0.1,0.31,head); mesh(SPH(0.055,8,6),'#1d1d2b',s*0.16,0.11,0.39,head);
+    const h=mesh(CONE(0.07,0.28,8),'#ffd77a',s*0.2,0.36,-0.08,head); h.rotation.z=-s*0.35;
+    mesh(SPH(0.06,8,6),'#ff9db0',s*0.27,-0.05,0.26,head).scale.set(1,0.6,0.5);
+    mesh(SPH(0.11),G,s*0.42,0.95,0.2,rig).scale.set(0.8,1.3,0.8);
+  }
+  [[1.18,-0.38],[0.98,-0.47],[0.76,-0.5],[0.56,-0.45]].forEach(([y,z])=>{ const c=mesh(CONE(0.07,0.18,6),'#ffd77a',0,y,z,rig); c.rotation.x=-0.9; });
+  const tail=new THREE.Group(); tail.position.set(0,0.5,-0.4); rig.add(tail); P.tail=tail;
+  const tc=mesh(CONE(0.16,0.9,10),G,0,0,-0.42,tail); tc.rotation.x=-Math.PI/2; mesh(SPH(0.09,8,6),'#ffd77a',0,0,-0.88,tail);
+  tail.rotation.x=-0.35;
+  legGroup(rig,-0.22,0.4,0.05,0.36,0.13,G,L,0,P); legGroup(rig,0.22,0.4,0.05,0.36,0.13,G,L,Math.PI,P);
+  addWings(rig,wingGeo(),'#a07ce0',1.12,-0.3,P,0.95);
+  g.userData.parts=P; return g;
+}
+function makeUnicorn(){
+  const g=new THREE.Group(), rig=new THREE.Group(); g.add(rig); const P={rig,legs:[],wings:[],tail:null};
+  const W='#fbf8ff', H='#c9a6e8';
+  mesh(SPH(0.5,18,14),W,0,1.0,0,rig).scale.set(0.78,0.72,1.25);
+  [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([sx,sz])=>legGroup(rig,sx*0.22,0.8,sz*0.38,0.74,0.09,W,H,sx*sz>0?0:Math.PI,P));
+  const neck=mesh(CYL(0.16,0.22,0.65),W,0,1.38,0.48,rig); neck.rotation.x=0.55;
+  const head=new THREE.Group(); head.position.set(0,1.78,0.68); rig.add(head);
+  mesh(SPH(0.26,16,12),W,0,0,0,head).scale.set(0.9,0.95,1.25);
+  mesh(SPH(0.17),'#ffe1ee',0,-0.1,0.27,head);
+  for(const s of [-1,1]){
+    mesh(SPH(0.065,8,6),'#2a1d3a',s*0.16,0.05,0.17,head); mesh(SPH(0.022,6,4),'#ffffff',s*0.17,0.08,0.22,head);
+    mesh(CONE(0.06,0.18,6),W,s*0.12,0.27,-0.05,head);
+    mesh(SPH(0.05,8,6),'#ffb3cf',s*0.2,-0.06,0.15,head).scale.set(1,0.6,0.5);
+  }
+  const horn=mesh(CONE(0.055,0.48,10),'#ffd34d',0,0.36,0.12,head); horn.rotation.x=0.45;
+  const cols=['#ff8fab','#ffc06e','#fff17a','#8ee59b','#7cc8ff','#c49bff'];
+  for(let i=0;i<6;i++){ const t=i/5; mesh(SPH(0.12,10,8),cols[i],0,1.1+t*0.56+0.09,0.31+t*0.34-0.145,rig); }
+  mesh(SPH(0.12,10,8),cols[0],0,2.03,0.6,rig);
+  const tail=new THREE.Group(); tail.position.set(0,1.1,-0.6); rig.add(tail); P.tail=tail;
+  for(let i=0;i<6;i++) mesh(SPH(0.13-i*0.012,10,8),cols[i],0,-i*0.12,-i*0.06,tail);
+  g.userData.parts=P; return g;
+}
+function makeGriffin(){
+  const g=new THREE.Group(), rig=new THREE.Group(); g.add(rig); const P={rig,legs:[],wings:[],tail:null};
+  const T='#d8a35a', F='#fffaf0';
+  mesh(SPH(0.5,18,14),T,0,1.0,0,rig).scale.set(0.8,0.75,1.2);
+  mesh(SPH(0.36),'#fff3dc',0,1.15,0.38,rig).scale.set(1,1.1,0.9);
+  legGroup(rig,-0.22,0.8,0.38,0.74,0.07,'#f2b33d','#e29a20',0,P); legGroup(rig,0.22,0.8,0.38,0.74,0.07,'#f2b33d','#e29a20',Math.PI,P);
+  legGroup(rig,-0.22,0.8,-0.38,0.74,0.1,T,'#a8743d',Math.PI,P); legGroup(rig,0.22,0.8,-0.38,0.74,0.1,T,'#a8743d',0,P);
+  const head=new THREE.Group(); head.position.set(0,1.62,0.55); rig.add(head);
+  mesh(SPH(0.3,16,12),F,0,0,0,head);
+  const beak=mesh(CONE(0.09,0.28,8),'#ffb020',0,-0.04,0.34,head); beak.rotation.x=Math.PI/2;
+  for(const s of [-1,1]){
+    mesh(SPH(0.06,8,6),'#1d1d2b',s*0.15,0.07,0.24,head); mesh(SPH(0.02,6,4),'#ffffff',s*0.16,0.1,0.29,head);
+    const tf=mesh(CONE(0.06,0.24,6),F,s*0.14,0.3,-0.08,head); tf.rotation.z=-s*0.4;
+  }
+  addWings(rig,featherGeo(),'#b07a3c',1.25,-0.05,P,1.05);
+  const tail=new THREE.Group(); tail.position.set(0,1.0,-0.6); rig.add(tail); P.tail=tail;
+  const tc=mesh(CYL(0.04,0.05,0.6,8),T,0,-0.12,-0.27,tail); tc.rotation.x=-1.98;
+  mesh(SPH(0.11,10,8),'#8a5a2b',0,-0.25,-0.56,tail);
+  g.userData.parts=P; return g;
+}
+function makeCreature(type){ return type==='unicorn'?makeUnicorn():type==='griffin'?makeGriffin():makeDragon(); }
+function animateCreature(g,t,moving){
+  const P=g.userData.parts; if(!P) return;
+  P.rig.position.y=moving?Math.abs(Math.sin(t*11))*0.12:Math.sin(t*2.2)*0.025;
+  P.legs.forEach(l=>{ l.rotation.x=moving?Math.sin(t*11+l.userData.ph)*0.7:l.rotation.x*0.85; });
+  P.wings.forEach(w=>{ const s=w.userData.s; const fl=moving?0.3+Math.sin(t*14)*0.55:0.25+Math.sin(t*2.5)*0.12; w.rotation.z=s*fl; w.rotation.y=s*0.55; });
+  if(P.tail) P.tail.rotation.y=Math.sin(t*(moving?8:2))*0.3;
+}
+
+/* ================= NPC MODELS ================= */
+function makeHuman(L){
+  const g=new THREE.Group();
+  mesh(CYL(0.32,0.58,1.15),L.robe,0,0.58,0,g);
+  if(L.apron){ const a=mesh(BOX(0.5,0.75,0.06),L.apron,0,0.5,0.47,g); a.rotation.x=-0.22; }
+  for(const s of [-1,1]){ const arm=mesh(CYL(0.09,0.11,0.6,8),L.robe,s*0.42,0.86,0.05,g); arm.rotation.z=s*0.35; mesh(SPH(0.1,8,6),L.skin,s*0.53,0.58,0.08,g); }
+  const head=new THREE.Group(); head.position.y=1.45; g.add(head);
+  mesh(SPH(0.34,16,12),L.skin,0,0,0,head);
+  for(const s of [-1,1]) mesh(SPH(0.055,8,6),'#2a1d14',s*0.12,0.05,0.3,head);
+  mesh(SPH(0.07,8,6),L.skin,0,-0.04,0.34,head);
+  if(L.beard){ const b=mesh(CONE(0.22,0.45,10),L.beard,0,-0.3,0.16,head); b.rotation.x=Math.PI; }
+  if(L.mustache){ for(const s of [-1,1]){ const m=mesh(SPH(0.08,8,6),L.mustache,s*0.08,-0.12,0.31,head); m.scale.set(1.4,0.55,0.6); } }
+  if(L.glasses){ for(const s of [-1,1]){ const r=mesh(new THREE.TorusGeometry(0.08,0.015,6,16),'#3b2a1a',s*0.12,0.05,0.33,head); } }
+  const hc=L.hatColor;
+  const half=r=>new THREE.SphereGeometry(r,16,8,0,Math.PI*2,0,Math.PI/2);
+  switch(L.hat){
+    case 'cap': mesh(half(0.36),hc,0,0.04,0,head); mesh(BOX(0.42,0.04,0.3),hc,0,0.07,0.35,head); break;
+    case 'witch': case 'wizard': { mesh(CYL(0.62,0.62,0.04,18),hc,0,0.24,0,head); const c=mesh(CONE(0.34,0.95,14),hc,0,0.72,0,head); c.rotation.z=L.hat==='witch'?0.18:-0.08;
+      if(L.hat==='wizard'){ const st=mesh(new THREE.OctahedronGeometry(0.09),'#ffd34d',0.12,0.7,0.27,head); }
+      else mesh(CYL(0.35,0.35,0.08,14),'#8ee59b',0,0.3,0,head); break; }
+    case 'straw': mesh(CYL(0.66,0.66,0.04,18),hc,0,0.22,0,head); mesh(CYL(0.3,0.34,0.26,14),hc,0,0.36,0,head); mesh(CYL(0.345,0.345,0.07,14),'#d9483b',0,0.27,0,head); break;
+    case 'beret': { const b=mesh(CYL(0.4,0.37,0.13,16),hc,0.05,0.29,0,head); b.rotation.z=-0.25; mesh(SPH(0.05,6,4),hc,0.08,0.37,0,head); break; }
+    case 'bandana': mesh(half(0.36),hc,0,0.03,0,head); mesh(SPH(0.08,8,6),hc,0,0.05,-0.36,head); break;
+    case 'helmet': mesh(half(0.39),hc,0,0.04,0,head); mesh(CYL(0.46,0.46,0.04,18),hc,0,0.06,0,head); break;
+    case 'chef': mesh(CYL(0.3,0.3,0.4,14),hc,0,0.42,0,head); mesh(SPH(0.36,14,10),hc,0,0.7,0,head).scale.set(1,0.6,1); break;
+    case 'hair': mesh(half(0.36),hc,0,0.03,-0.02,head); break;
+  }
+  return g;
+}
+function makeOwl(){
+  const g=new THREE.Group();
+  ['#c0504d','#3f7fbf','#6b4bb8'].forEach((c,i)=>{ const b=mesh(BOX(1.1-i*0.12,0.25,0.8-i*0.06),c,0,0.125+i*0.25,0,g); b.rotation.y=(i-1)*0.2; mesh(BOX(1.0-i*0.12,0.18,0.7-i*0.06),'#fffbea',0.06,0.125+i*0.25,0,g).rotation.y=(i-1)*0.2; });
+  const o=new THREE.Group(); o.position.y=0.75; g.add(o);
+  mesh(SPH(0.45,16,12),'#9a6b3f',0,0.5,0,o).scale.set(1,1.15,0.95);
+  mesh(SPH(0.3),'#f1dfb8',0,0.42,0.25,o).scale.set(1,1.2,0.6);
+  for(const s of [-1,1]){
+    mesh(SPH(0.15),'#ffffff',s*0.16,0.76,0.32,o).scale.set(1,1,0.5);
+    mesh(SPH(0.09,10,8),'#ffc93a',s*0.16,0.76,0.38,o).scale.set(1,1,0.5);
+    mesh(SPH(0.05,8,6),'#1d1d2b',s*0.16,0.76,0.41,o);
+    mesh(CONE(0.1,0.26,6),'#7a5230',s*0.26,1.02,0,o);
+    mesh(SPH(0.2),'#7a5230',s*0.42,0.48,0,o).scale.set(0.4,1,0.8);
+  }
+  const bk=mesh(CONE(0.06,0.15,6),'#f2a43a',0,0.62,0.42,o); bk.rotation.x=Math.PI*0.85;
+  mesh(CYL(0.22,0.22,0.12,12),'#2b2b35',0,1.04,0,o); mesh(BOX(0.62,0.05,0.62),'#2b2b35',0,1.11,0,o); mesh(SPH(0.05,6,4),'#ffd34d',0.25,1.05,0.25,o);
+  return g;
+}
+function makeGhost(){
+  const g=new THREE.Group(); const mat=new THREE.MeshToonMaterial({color:'#e3f4ff',gradientMap:grad,transparent:true,opacity:0.88,emissive:'#4a8fe0',emissiveIntensity:0.25});
+  const b=new THREE.Mesh(SPH(0.6,18,14),mat); b.position.y=2.0; g.add(b);
+  const c=new THREE.Mesh(CONE(0.62,1.6,18),mat); c.rotation.x=Math.PI; c.position.y=1.15; g.add(c);
+  for(const s of [-1,1]){ mesh(SPH(0.09,8,6),'#1d1d3b',s*0.2,2.05,0.52,g).scale.set(1,1.4,0.6); mesh(SPH(0.07,8,6),'#ffb3cf',s*0.32,1.88,0.47,g).scale.set(1,0.6,0.4); }
+  const arm=new THREE.Mesh(SPH(0.16,10,8),mat); arm.position.set(0.6,1.6,0.1); g.add(arm); const arm2=arm.clone(); arm2.position.x=-0.6; g.add(arm2);
+  return g;
+}
+
+/* ================= LABEL SPRITES ================= */
+function rr(x,X,Y,W,H,R){ x.beginPath(); x.moveTo(X+R,Y); x.lineTo(X+W-R,Y); x.quadraticCurveTo(X+W,Y,X+W,Y+R); x.lineTo(X+W,Y+H-R); x.quadraticCurveTo(X+W,Y+H,X+W-R,Y+H); x.lineTo(X+R,Y+H); x.quadraticCurveTo(X,Y+H,X,Y+H-R); x.lineTo(X,Y+R); x.quadraticCurveTo(X,Y,X+R,Y); x.closePath(); }
+function labelTex(name,status){
+  const c=document.createElement('canvas'); c.width=256; c.height=160; const x=c.getContext('2d');
+  const col=status==='done'?'#3fae5a':status==='active'?'#4a8fe0':status==='goal'?'#7b5ad6':'#f2b631';
+  const sym=status==='done'?'✓':status==='active'?'?':status==='goal'?'★':'!';
+  x.fillStyle=col; x.strokeStyle='#ffffff'; x.lineWidth=7; x.beginPath(); x.arc(128,52,40,0,Math.PI*2); x.fill(); x.stroke();
+  x.fillStyle='#fff'; x.font='700 52px Fredoka, sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(sym,128,56);
+  x.font='600 30px Fredoka, sans-serif'; const tw=x.measureText(name).width+30;
+  x.fillStyle='rgba(50,28,10,.78)'; rr(x,128-tw/2,104,tw,46,23); x.fill(); x.fillStyle='#fff'; x.fillText(name,128,128);
+  const t=new THREE.CanvasTexture(c); return t;
+}
+
+/* ================= WORLD ================= */
+const obstacles=[];
+function addObs(cx,cz,w,d){ obstacles.push({x1:cx-w/2,x2:cx+w/2,z1:cz-d/2,z2:cz+d/2}); }
+function inObstacle(x,z,m){ return obstacles.some(o=>x>o.x1-m&&x<o.x2+m&&z>o.z1-m&&z<o.z2+m); }
+function canvasTex(w,h,draw){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); return t; }
+function stoneTex(base,cols,n){ const t=canvasTex(256,256,(x)=>{ x.fillStyle=base; x.fillRect(0,0,256,256); for(let i=0;i<n;i++){ x.fillStyle=cols[i%cols.length]; const px=Math.random()*256,py=Math.random()*256,r=6+Math.random()*9; x.beginPath(); x.ellipse(px,py,r,r*0.75,Math.random()*3,0,Math.PI*2); x.fill(); } }); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+function grassTex(){ const t=canvasTex(128,128,(x)=>{ x.fillStyle='#ffffff'; x.fillRect(0,0,128,128); for(let i=0;i<500;i++){ x.fillStyle=Math.random()<0.5?'rgba(80,140,40,.18)':'rgba(255,255,200,.18)'; x.fillRect(Math.random()*128,Math.random()*128,2,4); } }); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+
+let sky, barrier, mirrorWedges=[], mirrorGlow, waterTop, boat, cauldronLiquid, clouds=[], fountainStar, tapRing, bubbles=[];
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{top:{value:new THREE.Color('#78bff7')},bot:{value:new THREE.Color('#fff0d8')}},
+  vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'uniform vec3 top; uniform vec3 bot; varying vec3 vP; void main(){ float h=normalize(vP).y; gl_FragColor=vec4(mix(bot,top,clamp(h*1.8+0.05,0.0,1.0)),1.0);}'});
+
+function house(x,z,w,d,h,rot,wall,roof){
+  const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=rot; scene.add(g);
+  mesh(BOX(w,h,d),wall,0,h/2,0,g);
+  mesh(BOX(w+0.12,0.5,d+0.12),'#b9ad9c',0,0.25,0,g);
+  const sh=new THREE.Shape(); sh.moveTo(-w/2-0.4,0); sh.lineTo(w/2+0.4,0); sh.lineTo(0,h*0.55+0.9); sh.lineTo(-w/2-0.4,0);
+  const rg=new THREE.ExtrudeGeometry(sh,{depth:d+0.6,bevelEnabled:false}); rg.translate(0,h,-(d+0.6)/2);
+  mesh(rg,roof,0,0,0,g);
+  mesh(BOX(1.1,1.9,0.14),'#8a5a33',0,0.95,d/2+0.05,g);
+  mesh(SPH(0.07,6,4),'#ffd34d',0.35,0.95,d/2+0.14,g);
+  for(const s of [-1,1]){ mesh(BOX(0.85,0.85,0.1),'#ffe9a0',s*w*0.3,h*0.62,d/2+0.04,g); mesh(BOX(0.95,0.12,0.18),'#8a5a33',s*w*0.3,h*0.62-0.48,d/2+0.08,g);
+    mesh(BOX(0.9,0.2,0.3),'#8a5a33',s*w*0.3,h*0.62-0.6,d/2+0.18,g); for(let k=0;k<3;k++) mesh(SPH(0.09,6,4),pick(['#ff7aa8','#ffd84d','#ff9f5a','#b48cff']),s*w*0.3+(k-1)*0.25,h*0.62-0.45,d/2+0.2,g);
+    const sw=mesh(BOX(0.1,0.85,0.75),'#ffe9a0',s*(w/2+0.03),h*0.62,0,g); }
+  const cw=new THREE.Mesh(new THREE.CircleGeometry(0.38,16),M('#ffe9a0')); cw.position.set(0,h+0.75,(d+0.6)/2+0.02); g.add(cw);
+  mesh(BOX(0.6,1.4,0.6),'#a8705a',w*0.25,h+0.9,-d*0.2,g);
+  const sw=Math.abs(Math.sin(rot))>0.5; addObs(x,z,sw?d:w,sw?w:d);
+}
+function tree(x,z,s){ s=s||1; const g=new THREE.Group(); g.position.set(x,0,z); g.scale.setScalar(s); scene.add(g);
+  mesh(CYL(0.22,0.3,1.6,8),'#8a5a33',0,0.8,0,g); const c=pick(['#5fb85a','#73c45e','#4fa85a','#86cc63']);
+  mesh(SPH(1.1,10,8),c,0,2.2,0,g); mesh(SPH(0.8,10,8),c,0.55,2.7,0.2,g); mesh(SPH(0.75,10,8),c,-0.5,2.6,-0.2,g);
+  if(Math.random()<0.4) for(let i=0;i<4;i++) mesh(SPH(0.11,6,4),'#e64b4b',rnd(-0.8,0.8),rnd(1.9,2.8),rnd(0.6,0.95),g);
+  return g; }
+function stall(x,z,col,goods){
+  const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+  mesh(BOX(3,0.9,1.3),'#b98552',0,0.45,0,g);
+  for(const sx of [-1.4,1.4]) for(const sz of [-0.6,0.6]) mesh(CYL(0.06,0.06,2.4,6),'#8a5a33',sx,1.2,sz,g);
+  const t=canvasTex(128,32,(x)=>{ for(let i=0;i<8;i++){ x.fillStyle=i%2?'#ffffff':col; x.fillRect(i*16,0,16,32);} });
+  const aw=new THREE.Mesh(BOX(3.4,0.14,1.9),new THREE.MeshToonMaterial({map:t,gradientMap:grad})); aw.position.set(0,2.45,0.1); aw.rotation.x=0.18; aw.castShadow=true; g.add(aw);
+  goods(g); addObs(x,z,3.1,1.5);
+}
+function sign(x,z,text){
+  const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+  mesh(CYL(0.09,0.11,2.6,8),'#7a5230',0,1.3,0,g);
+  const t=canvasTex(512,128,(c)=>{ c.fillStyle='#c48c4e'; c.fillRect(0,0,512,128); c.strokeStyle='#7a5230'; c.lineWidth=10; c.strokeRect(5,5,502,118); c.fillStyle='#3b2a1a'; c.font='600 52px Fredoka, sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(text,256,68); });
+  const wood=M('#c48c4e'), tm=new THREE.MeshToonMaterial({map:t,gradientMap:grad});
+  const b=new THREE.Mesh(BOX(2.8,0.7,0.1),[wood,wood,wood,wood,tm,tm]); b.position.y=2.3; b.castShadow=true; g.add(b);
+  g.userData.redraw=()=>{ const c=t.image.getContext('2d'); c.fillStyle='#c48c4e'; c.fillRect(0,0,512,128); c.strokeStyle='#7a5230'; c.lineWidth=10; c.strokeRect(5,5,502,118); c.fillStyle='#3b2a1a'; c.font='600 52px Fredoka, sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(text,256,68); t.needsUpdate=true; };
+  signs.push(g); addObs(x,z,0.4,0.4);
+}
+const signs=[];
+function lamp(x,z){ mesh(CYL(0.1,0.14,3.2,8),'#4a4a5a',x,1.6,z,scene); const l=new THREE.Mesh(SPH(0.3,12,8),new THREE.MeshBasicMaterial({color:'#fff3b0'})); l.position.set(x,3.35,z); scene.add(l); mesh(CONE(0.38,0.35,8),'#4a4a5a',x,3.75,z,scene); addObs(x,z,0.5,0.5); }
+
+function buildWorld(){
+  sky=new THREE.Mesh(new THREE.SphereGeometry(330,24,12),skyMat); sky.renderOrder=-1; scene.add(sky);
+  scene.fog=new THREE.Fog('#e3f0ff',80,190);
+  scene.add(new THREE.HemisphereLight('#ffffff','#7fae5a',0.62));
+  const sun=new THREE.DirectionalLight('#fff1d8',0.75); sun.position.set(30,50,25); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+  const sc=sun.shadow.camera; sc.left=-58; sc.right=58; sc.top=58; sc.bottom=-58; sc.near=1; sc.far=160; sun.shadow.bias=-0.0008; scene.add(sun);
+
+  const gt=grassTex(); gt.repeat.set(70,70);
+  const grass=new THREE.Mesh(new THREE.PlaneGeometry(420,420),new THREE.MeshToonMaterial({color:'#9bd36f',map:gt,gradientMap:grad})); grass.rotation.x=-Math.PI/2; grass.receiveShadow=true; scene.add(grass);
+  const cob=stoneTex('#e3cfa3',['#d4bb8a','#ecdcb8','#cbb183','#f1e3c3'],380);
+  const cm=(rx,ry)=>{ const t=cob.clone(); t.needsUpdate=true; t.repeat.set(rx,ry); return new THREE.MeshToonMaterial({map:t,gradientMap:grad}); };
+  const plaza=new THREE.Mesh(new THREE.CircleGeometry(13.5,48),cm(4,4)); plaza.rotation.x=-Math.PI/2; plaza.position.y=0.03; plaza.receiveShadow=true; scene.add(plaza);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(13.4,14,48),M('#bfa577')); ring.rotation.x=-Math.PI/2; ring.position.y=0.04; scene.add(ring);
+  const road=(x,z,w,l)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,l),cm(w/7,l/7)); m.rotation.x=-Math.PI/2; m.position.set(x,0.02,z); m.receiveShadow=true; scene.add(m); };
+  road(0,-25,7,26); road(0,23,7,22); road(29.5,0,33,7); road(-29.5,0,33,7);
+
+  // fountain
+  mesh(CYL(3,3.2,0.8,24),'#cbbfa8',0,0.4,0,scene);
+  waterTop=new THREE.Mesh(new THREE.CircleGeometry(2.7,24),M('#6fc6f0')); waterTop.rotation.x=-Math.PI/2; waterTop.position.y=0.76; scene.add(waterTop);
+  mesh(CYL(0.4,0.5,1.8,10),'#cbbfa8',0,1.2,0,scene); mesh(CYL(1.1,0.6,0.4,16),'#cbbfa8',0,2.2,0,scene);
+  const w2=new THREE.Mesh(new THREE.CircleGeometry(1,16),M('#8fd8f5')); w2.rotation.x=-Math.PI/2; w2.position.y=2.41; scene.add(w2);
+  fountainStar=mesh(new THREE.OctahedronGeometry(0.4),'#ffd34d',0,3.0,0,scene);
+  addObs(0,0,6.6,6.6);
+  [[-9.5,9.5],[9.5,9.5],[-9.5,-9.5],[9.5,-9.5]].forEach(([x,z])=>lamp(x,z));
+
+  // houses
+  const walls=['#f7d6a0','#f4b6b6','#b8d8f0','#c8e6b0','#ead6f8','#ffe9a8','#fbe0c8'], roofs=['#c0504d','#7a5ca8','#3f7fbf','#d9763a','#4f8f5f','#b0457a'];
+  const H=[[17,-8.6,5,5,3.2,0],[24.5,-8.6,5.5,5,3.6,0],[32,-8.6,5,5,3.0,0],[40,-8.6,6,5,3.8,0],
+    [17.5,8.6,5,5,3.4,Math.PI],[25,8.6,5,5,3.0,Math.PI],[32.5,8.6,5.5,5,3.8,Math.PI],[40.5,8.6,5,5,3.2,Math.PI],
+    [-17,-8.6,5,5,3.6,0],[-24.5,-8.6,5.5,5,3.0,0],[-32,-8.6,5,5,3.8,0],[-40,-8.6,6,5,3.2,0],
+    [-17.5,8.6,5,5,3.0,Math.PI],[-25,8.6,5,5,3.6,Math.PI],[-32.5,8.6,5.5,5,3.2,Math.PI],[-40.5,8.6,5,5,3.8,Math.PI],
+    [-8.6,-17,5,5,3.4,Math.PI/2],[-8.6,-24.5,5,5,3.8,Math.PI/2],[-8.6,-31.5,5,5,3.2,Math.PI/2],
+    [8.6,-17,5,5,3.2,-Math.PI/2],[8.6,-24.5,5,5,3.6,-Math.PI/2],[8.6,-31.5,5,5,3.4,-Math.PI/2],
+    [8.6,18,5,5,3.2,-Math.PI/2],[8.6,25.5,5,5,3.6,-Math.PI/2]];
+  H.forEach((h,i)=>house(h[0],h[1],h[2],h[3],h[4],h[5],walls[i%walls.length],roofs[(i*3)%roofs.length]));
+
+  // stalls
+  stall(-7,-6,'#4f7fd6',g=>{ for(let i=0;i<4;i++){ const m=mesh(CYL(0.28,0.28,0.05,16),'#d9f4ff',-1.05+i*0.7,1.25,-0.1,g); m.rotation.x=Math.PI/2-0.2; mesh(new THREE.TorusGeometry(0.29,0.04,6,16),'#f2c14e',-1.05+i*0.7,1.25,-0.09,g).rotation.x=-0.2; } });
+  stall(7,-6,'#e74c3c',g=>{ for(let i=0;i<3;i++){ const r=0.28+i*0.06; mesh(CYL(r,r,0.06,16),'#f4c26b',-0.9+i*0.85,0.94,0,g); for(let k=0;k<3;k++) mesh(CYL(0.05,0.05,0.07,8),'#d9483b',-0.9+i*0.85+Math.cos(k*2)*r*0.5,0.96,Math.sin(k*2)*r*0.5,g); } });
+  const oven=new THREE.Group(); oven.position.set(10.6,0,-8.2); scene.add(oven);
+  mesh(new THREE.SphereGeometry(1.2,16,10,0,Math.PI*2,0,Math.PI/2),'#c46a3c',0,0,0,oven); const oh=new THREE.Mesh(new THREE.CircleGeometry(0.45,12,0,Math.PI),new THREE.MeshBasicMaterial({color:'#ff9d3a'})); oh.position.set(0,0.05,1.19); oven.add(oh); mesh(CYL(0.2,0.2,0.9,8),'#8a4a2a',0.4,1.3,-0.3,oven);
+  addObs(10.6,-8.2,2.4,2.4);
+  // owl books obstacle
+  addObs(4.8,4.8,1.2,0.9);
+  // west props
+  const easel=new THREE.Group(); easel.position.set(-19.2,0,3.4); easel.rotation.y=-0.5; scene.add(easel);
+  for(const s of [-1,1]){ const l=mesh(BOX(0.08,2,0.08),'#8a5a33',s*0.45,1,0,easel); l.rotation.z=s*0.15; } const bl=mesh(BOX(0.08,2,0.08),'#8a5a33',0,1,-0.4,easel); bl.rotation.x=-0.3;
+  const ft=canvasTex(128,96,(c)=>{ c.fillStyle='#fffdf6'; c.fillRect(0,0,128,96); c.fillStyle='#e0607e'; c.strokeStyle='#3b2a1a'; c.lineWidth=3; c.beginPath(); [[0,0],[4,0],[4,2],[6,2],[4,4],[0,2]].forEach(([x,y],i)=>{ const X=24+x*13,Y=80-y*14; i?c.lineTo(X,Y):c.moveTo(X,Y); }); c.closePath(); c.fill(); c.stroke(); });
+  const board=new THREE.Mesh(BOX(1.3,1,0.06),[M('#fffdf6'),M('#fffdf6'),M('#fffdf6'),M('#fffdf6'),new THREE.MeshToonMaterial({map:ft,gradientMap:grad}),M('#fffdf6')]); board.position.set(0,1.45,0.08); easel.add(board);
+  addObs(-19.2,3.4,1.3,1);
+  for(let b=0;b<2;b++){ const bx=-27.5+b*3; mesh(BOX(2.6,0.32,1.1),'#7a5a3a',bx,0.16,-4.6,scene); mesh(BOX(2.4,0.05,0.9),'#5a3f26',bx,0.33,-4.6,scene); for(let k=0;k<6;k++) mesh(SPH(0.15,6,4),pick(['#ff7aa8','#ff4f6d','#ffd84d','#ffffff']),bx-1+k*0.4,0.48,-4.6+rnd(-0.25,0.25),scene); }
+  addObs(-26,-4.6,6,1.2);
+  const cg=new THREE.Group(); cg.position.set(-38,0,2.6); scene.add(cg);
+  mesh(new THREE.SphereGeometry(0.75,16,10,0,Math.PI*2,Math.PI/2,Math.PI/2),'#2f2f3a',0,0.85,0,cg);
+  cauldronLiquid=new THREE.Mesh(new THREE.CircleGeometry(0.7,16),new THREE.MeshBasicMaterial({color:'#8cff6a'})); cauldronLiquid.rotation.x=-Math.PI/2; cauldronLiquid.position.y=0.8; cg.add(cauldronLiquid);
+  for(let i=0;i<3;i++){ const f=new THREE.Mesh(CONE(0.15,0.45,6),new THREE.MeshBasicMaterial({color:i%2?'#ffb02e':'#ff6a2e'})); f.position.set(Math.cos(i*2.1)*0.25,0.22,Math.sin(i*2.1)*0.25); cg.add(f); }
+  for(let i=0;i<5;i++){ const b=new THREE.Mesh(SPH(0.07,6,4),new THREE.MeshBasicMaterial({color:'#c8ff9a'})); b.position.set(rnd(-0.4,0.4),0.9,rnd(-0.4,0.4)); b.userData.ph=Math.random()*3; cg.add(b); bubbles.push(b); }
+  addObs(-38,2.6,1.7,1.7);
+  // east props
+  for(let i=0;i<5;i++) mesh(BOX(0.6,0.3,0.3),'#c8643c',20+(i%3)*0.62,0.15+Math.floor(i/3)*0.3,-4.1,scene);
+  mesh(BOX(1.4,0.9,0.8),'#b98552',21.4,0.45,-2.2,scene); const plan=new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.6),M('#dbe9ff')); plan.rotation.x=-Math.PI/2; plan.position.set(21.4,0.92,-2.2); scene.add(plan);
+  addObs(20.8,-3.2,2.8,2.6);
+  const glassM=new THREE.MeshToonMaterial({color:'#bfe9ff',gradientMap:grad,transparent:true,opacity:0.6});
+  for(let i=0;i<3;i++){ const p=new THREE.Mesh(BOX(1.1,1.6,0.06),glassM); p.position.set(27.6+i*0.25,0.8,3.6+i*0.15); p.rotation.set(0,0.3,-0.12); scene.add(p); }
+  addObs(28,3.8,1.6,1.2);
+  [[37,-3.4,1.2],[38.3,-3.6,0.8],[37.2,-2.0,0.6],[37,-3.4,0.6]].forEach(([x,z,s],i)=>mesh(BOX(s*1.25,s*0.75,s*0.5).translate(0,0,0),'#c9965e',x,i===3?1.125:s*0.375,z,scene));
+  addObs(37.6,-3,2.6,2.4);
+  // north props
+  mesh(BOX(1,0.9,2.2),'#7a5a8a',4.2,0.45,-23,scene);
+  [['#9ef0c0',0.15,0.3,-23.7],['#c9a6ff',0.25,0.5,-23.1],['#ff9fcf',0.15,0.3,-22.5],['#ffe27a',0.25,0.5,-22.2]].forEach(([c,r,h,z])=>{ const glass=new THREE.Mesh(CYL(r,r,h,14),new THREE.MeshToonMaterial({color:c,gradientMap:grad,transparent:true,opacity:0.85})); glass.position.set(4.2,0.9+h/2,z); scene.add(glass); });
+  addObs(4.2,-23,1.2,2.4);
+  // tower
+  mesh(CYL(4,4.6,15,16),'#b9b2d6',0,7.5,-40,scene); mesh(CONE(5.4,6,16),'#6b4bb8',0,18,-40,scene);
+  mesh(CYL(4.3,4.3,0.6,16),'#9a92c0',0,15.2,-40,scene);
+  mesh(CYL(0.08,0.08,2.4,6),'#4a4a5a',0,22,-40,scene); const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.8),MDS('#ffd34d')); flag.position.set(0.72,22.6,-40); scene.add(flag);
+  mesh(BOX(2.2,3.4,0.4),'#6b4a8a',0,1.7,-35.5,scene);
+  const mirror=new THREE.Group(); mirror.position.set(0,9.2,-35.55); scene.add(mirror);
+  mesh(new THREE.TorusGeometry(2.45,0.28,10,36),'#f2c14e',0,0,0.05,mirror);
+  for(let i=0;i<11;i++){ const a=Math.PI/2+i*Math.PI*2/11; const w=new THREE.Mesh(new THREE.CircleGeometry(2.25,4,a,Math.PI*2/11-0.035),new THREE.MeshBasicMaterial({color:'#3b3458'})); w.position.z=0.04; mirror.add(w); mirrorWedges.push(w); }
+  mirrorGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(128,128,(c)=>{ const g=c.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,'rgba(220,250,255,1)'); g.addColorStop(0.4,'rgba(160,220,255,.6)'); g.addColorStop(1,'rgba(160,220,255,0)'); c.fillStyle=g; c.fillRect(0,0,128,128); }),blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,opacity:0}));
+  mirrorGlow.position.set(0,9.2,-35); mirrorGlow.scale.set(8,8,1); scene.add(mirrorGlow);
+  addObs(0,-40,9.4,9.4);
+  // south gate + barrier + hedges
+  for(const s of [-1,1]){ mesh(BOX(1.3,5.4,1.3),'#cbbfa8',s*4.2,2.7,33,scene); mesh(CONE(0.9,1.1,4),'#6b4bb8',s*4.2,5.95,33,scene); }
+  mesh(BOX(9.6,0.9,1.3),'#cbbfa8',0,5.2,33,scene);
+  barrier=new THREE.Mesh(new THREE.PlaneGeometry(7.1,4.75),new THREE.MeshBasicMaterial({color:'#b07cff',transparent:true,opacity:0.45,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); barrier.position.set(0,2.4,33); scene.add(barrier);
+  for(const s of [-1,1]) for(let x=5.5;x<48;x+=2.2) mesh(SPH(1.15,8,6),'#4f9e4a',s*x,0.7,33.4,scene).scale.set(1,0.8,0.8);
+  // pond + boat
+  const pond=new THREE.Mesh(new THREE.CircleGeometry(5,28),M('#6cc6ee')); pond.rotation.x=-Math.PI/2; pond.position.set(-13,0.05,22); scene.add(pond);
+  const pr=new THREE.Mesh(new THREE.RingGeometry(5,5.6,28),M('#cbbfa8')); pr.rotation.x=-Math.PI/2; pr.position.set(-13,0.06,22); scene.add(pr);
+  boat=new THREE.Group(); boat.position.set(-13.5,0.1,22.5); scene.add(boat);
+  mesh(BOX(2.2,0.4,0.9),'#a8703a',0,0.2,0,boat); mesh(CYL(0.05,0.05,2,6),'#7a5230',0,1.3,0,boat);
+  const ss=new THREE.Shape(); ss.moveTo(0,0); ss.lineTo(0,1.5); ss.lineTo(0.9,0.05); ss.lineTo(0,0); const sail=new THREE.Mesh(new THREE.ShapeGeometry(ss),MDS('#ffffff')); sail.position.set(0.05,0.45,0); boat.add(sail);
+  addObs(-13,22,11,11);
+  // signs
+  sign(5.2,-14.2,'↑ Turmweg'); sign(15,-4.6,'Handwerkergasse →'); sign(-15,-4.6,'← Kunstgasse'); sign(5.2,14.5,'↓ Dorfteich & Südtor');
+  // trees inside
+  [[20,20],[24,16],[28,22],[34,17],[-22,15],[-27,21],[-33,17],[20,-18],[26,-16],[31,-22],[37,-17],[-20,-18],[-25,-15],[-30,-21],[-37,-17],[15,30],[20,27],[-30,28],[-24,28],[38,26],[30,29],[16,-28],[-16,-28],[22,-30],[-22,-30],[42,-30],[-42,-30],[44,15],[-44,24],[13,-37],[-13,-37]].forEach(([x,z])=>{ tree(x,z,rnd(0.9,1.3)); addObs(x,z,1.4,1.4); });
+  for(let i=0;i<110;i++){ const a=Math.random()*Math.PI*2, r=rnd(52,95); tree(Math.cos(a)*r,Math.sin(a)*r-4,rnd(1,1.8)); }
+  for(let i=0;i<16;i++){ const a=i/16*Math.PI*2, r=rnd(120,150); const h=mesh(SPH(rnd(20,34),12,8),pick(['#88c66a','#7db85f','#93cf72']),Math.cos(a)*r,-4,Math.sin(a)*r,scene); h.scale.y=0.5; h.castShadow=false; }
+  for(let i=0;i<7;i++){ const c=new THREE.Group(); for(let k=0;k<4;k++){ const p=new THREE.Mesh(SPH(rnd(2,3.4),10,8),M('#ffffff')); p.position.set(k*2.4-3.6,rnd(-0.5,0.8),rnd(-1,1)); c.add(p); } c.position.set(rnd(-120,120),rnd(34,46),rnd(-110,40)); c.userData.v=rnd(1,2.2); scene.add(c); clouds.push(c); }
+  // flowers
+  const fg=new THREE.SphereGeometry(0.13,6,4);
+  ['#ff7aa8','#ffd84d','#ffffff','#b48cff','#ff9f5a'].forEach(col=>{ const im=new THREE.InstancedMesh(fg,M(col),80); const d=new THREE.Object3D(); let k=0,tries=0;
+    while(k<80&&tries<3000){ tries++; const x=rnd(-50,50), z=rnd(-48,40); if(Math.hypot(x,z)<14.5) continue; if(Math.abs(x)<4.5&&z<36) continue; if(Math.abs(z)<4.5) continue; if(inObstacle(x,z,0.4)) continue; if(z>32.5&&z<34.5) continue; d.position.set(x,0.13,z); d.updateMatrix(); im.setMatrixAt(k++,d.matrix); }
+    im.count=k; scene.add(im); });
+  tapRing=new THREE.Mesh(new THREE.RingGeometry(0.45,0.62,28),new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:0,depthWrite:false})); tapRing.rotation.x=-Math.PI/2; tapRing.position.y=0.08; scene.add(tapRing);
+}
+
+/* ================= NPC INSTANCES ================= */
+const npcObjs=[];
+function spawnNPCs(){
+  [...NPCS,GUARD].forEach(n=>{
+    const o=n.owl?makeOwl():n.ghost?makeGhost():makeHuman(n.look);
+    o.position.set(n.pos[0],0,n.pos[1]); n.baseRot=Math.atan2(-n.pos[0],-n.pos[1]); if(n.id===1||n.id===10) n.baseRot=0; o.rotation.y=n.baseRot; scene.add(o);
+    const hit=new THREE.Mesh(CYL(1,1,3,8),new THREE.MeshBasicMaterial()); hit.visible=false; hit.position.y=1.5; hit.userData.npc=n; o.add(hit);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:labelTex(n.name,'new'),depthTest:false,transparent:true})); sp.renderOrder=999; sp.scale.set(2.6,1.62,1);
+    sp.position.y=n.owl?3.4:n.ghost?3.6:2.95; o.add(sp);
+    n.obj=o; n.hit=hit; n.label=sp; n.ph=Math.random()*6; npcObjs.push(n);
+    if(!n.owl) addObs(n.pos[0],n.pos[1],0.9,0.9);
+  });
+}
+function npcStatus(n){ if(n.id==='guard'){ if(S&&S.finished) return 'done'; return S&&countDone()===11?'goal':'active'; } const st=S&&S.tasks[n.id]; return st==='done'?'done':st==='active'?'active':'new'; }
+function updateMarker(n){ const old=n.label.material.map; n.label.material.map=labelTex(n.name,npcStatus(n)); n.label.material.needsUpdate=true; old.dispose(); }
+function refreshAllMarkers(){ npcObjs.forEach(updateMarker); }
+function refreshMirror(){ NPCS.forEach((n,i)=>{ mirrorWedges[i].material.color.set(S&&S.tasks[n.id]==='done'?'#bdf0ff':'#3b3458'); }); }
+
+/* ================= PATHFINDING ================= */
+const G={x0:-45,z0:-45,w:91,h:81}; let blocked;
+function buildGrid(){ blocked=new Uint8Array(G.w*G.h); for(let j=0;j<G.h;j++) for(let i=0;i<G.w;i++){ const x=G.x0+i, z=G.z0+j; let b=x<-44||x>44||z<-36||z>31.5; if(!b) b=inObstacle(x,z,0.65); blocked[j*G.w+i]=b?1:0; } }
+const cellOf=(x,z)=>[Math.round(x-G.x0),Math.round(z-G.z0)];
+const isFree=(i,j)=>i>=0&&j>=0&&i<G.w&&j<G.h&&!blocked[j*G.w+i];
+function nearestFree(i,j){ if(isFree(i,j)) return [i,j]; for(let r=1;r<25;r++){ let best=null,bd=1e9; for(let dj=-r;dj<=r;dj++) for(let di=-r;di<=r;di++){ if(Math.max(Math.abs(di),Math.abs(dj))!==r) continue; if(isFree(i+di,j+dj)){ const d=di*di+dj*dj; if(d<bd){ bd=d; best=[i+di,j+dj]; } } } if(best) return best; } return null; }
+function lineFree(ax,az,bx,bz){ const d=Math.hypot(bx-ax,bz-az); const n=Math.max(1,Math.ceil(d/0.3)); for(let k=0;k<=n;k++){ const c=cellOf(ax+(bx-ax)*k/n,az+(bz-az)*k/n); if(!isFree(c[0],c[1])) return false; } return true; }
+function findPath(sx,sz,tx,tz){
+  const s=nearestFree(...cellOf(sx,sz)), t=nearestFree(...cellOf(tx,tz)); if(!s||!t) return null;
+  const W=G.w, N=W*G.h, gS=new Float32Array(N).fill(Infinity), came=new Int32Array(N).fill(-1), closed=new Uint8Array(N);
+  const si=s[1]*W+s[0], ti=t[1]*W+t[0];
+  const hh=k=>{ const dx=Math.abs(k%W-t[0]), dz=Math.abs(((k/W)|0)-t[1]); return Math.max(dx,dz)+0.414*Math.min(dx,dz); };
+  const heap=[]; const push=(k,f)=>{ heap.push([f,k]); let i=heap.length-1; while(i>0){ const p=(i-1)>>1; if(heap[p][0]<=heap[i][0]) break; [heap[p],heap[i]]=[heap[i],heap[p]]; i=p; } };
+  const pop=()=>{ const top=heap[0], last=heap.pop(); if(heap.length){ heap[0]=last; let i=0; for(;;){ const l=2*i+1,r=l+1; let m=i; if(l<heap.length&&heap[l][0]<heap[m][0]) m=l; if(r<heap.length&&heap[r][0]<heap[m][0]) m=r; if(m===i) break; [heap[m],heap[i]]=[heap[i],heap[m]]; i=m; } } return top[1]; };
+  gS[si]=0; push(si,hh(si)); let found=si===ti;
+  while(heap.length&&!found){ const cur=pop(); if(closed[cur]) continue; closed[cur]=1; if(cur===ti){ found=true; break; }
+    const ci=cur%W, cj=(cur/W)|0;
+    for(let dj=-1;dj<=1;dj++) for(let di=-1;di<=1;di++){ if(!di&&!dj) continue; const ni=ci+di,nj=cj+dj; if(!isFree(ni,nj)) continue; if(di&&dj&&(!isFree(ci+di,cj)||!isFree(ci,cj+dj))) continue;
+      const nk=nj*W+ni, ng=gS[cur]+(di&&dj?1.414:1); if(ng<gS[nk]){ gS[nk]=ng; came[nk]=cur; push(nk,ng+hh(nk)); } } }
+  if(!found) return null;
+  const cells=[]; let k=ti; while(k!==-1&&k!==si){ cells.push({x:G.x0+k%W,z:G.z0+((k/W)|0)}); k=came[k]; } cells.reverse();
+  const tc=cellOf(tx,tz); const end=(tc[0]===t[0]&&tc[1]===t[1])?{x:tx,z:tz}:{x:G.x0+t[0],z:G.z0+t[1]};
+  if(cells.length) cells[cells.length-1]=end; else cells.push(end);
+  const all=[{x:sx,z:sz},...cells]; const out=[]; let a=0;
+  while(a<all.length-1){ let m=all.length-1; while(m>a+1&&!lineFree(all[a].x,all[a].z,all[m].x,all[m].z)) m--; out.push(all[m]); a=m; }
+  return out;
+}
+
+/* ================= PLAYER ================= */
+const player={obj:null,path:null,onArrive:null,speed:7.5};
+function buildPlayer(ch){ if(player.obj) scene.remove(player.obj); player.obj=makeCreature(ch); player.obj.traverse(o=>{ if(o.isMesh) o.castShadow=true; }); scene.add(player.obj); player.obj.position.set(0,0,27); player.obj.rotation.y=Math.PI; player.path=null; player.onArrive=null; }
+function lerpAngle(a,b,t){ let d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI; return a+d*t; }
+function walkTo(x,z,cb){ const p=player.obj.position; const path=findPath(p.x,p.z,x,z); if(!path){ toast('Da komme ich nicht hin.'); return false; } player.path=path; player.onArrive=cb; if(!path.length){ player.path=null; if(cb) cb(); } return true; }
+function approachNPC(n){
+  sfx('click'); const p=player.obj.position; const dx=p.x-n.pos[0], dz=p.z-n.pos[1]; const d=Math.hypot(dx,dz)||1;
+  const arrive=()=>{ player.obj.rotation.y=Math.atan2(n.pos[0]-player.obj.position.x,n.pos[1]-player.obj.position.z); talkTo(n); };
+  if(d<3.2){ player.path=null; arrive(); return; }
+  walkTo(n.pos[0]+dx/d*2,n.pos[1]+dz/d*2,arrive);
+}
+function updatePlayer(dt,t){
+  const o=player.obj; let moving=false;
+  const ix=(keys.r?1:0)-(keys.l?1:0), iz=(keys.f?1:0)-(keys.b?1:0);
+  if(ix||iz){
+    const fx=-Math.sin(camAngle), fz=-Math.cos(camAngle), rx=Math.cos(camAngle), rz=-Math.sin(camAngle);
+    let dx=fx*iz+rx*ix, dz=fz*iz+rz*ix; const l=Math.hypot(dx,dz); dx/=l; dz/=l;
+    const step=player.speed*dt, px=o.position.x, pz=o.position.z, nx=px+dx*step, nz=pz+dz*step;
+    const stuck=!walkable(px,pz);
+    if(stuck||walkable(nx,nz)){ o.position.x=nx; o.position.z=nz; }
+    else if(walkable(nx,pz)) o.position.x=nx;
+    else if(walkable(px,nz)) o.position.z=nz;
+    o.rotation.y=lerpAngle(o.rotation.y,Math.atan2(dx,dz),1-Math.pow(0.0002,dt));
+    animateCreature(o,t,true);
+    const n=nearestNPC(3.5); if(n&&n!==nearHint){ nearHint=n; toast(`${n.name}: Leertaste oder 💬 zum Sprechen`,2200); } else if(!n) nearHint=null;
+    return;
+  }
+  if(player.path&&player.path.length){ const wp=player.path[0]; const dx=wp.x-o.position.x, dz=wp.z-o.position.z, d=Math.hypot(dx,dz), step=player.speed*dt;
+    if(d>0.01) o.rotation.y=lerpAngle(o.rotation.y,Math.atan2(dx,dz),1-Math.pow(0.0002,dt));
+    if(d<=step){ o.position.x=wp.x; o.position.z=wp.z; player.path.shift(); if(!player.path.length){ player.path=null; const cb=player.onArrive; player.onArrive=null; if(cb) cb(); } }
+    else { o.position.x+=dx/d*step; o.position.z+=dz/d*step; moving=true; } }
+  animateCreature(o,t,moving);
+}
+
+/* ================= CAMERA & INPUT ================= */
+let camAngle=0, camDist=17; const camTarget=new THREE.Vector3(); const tmpV=new THREE.Vector3();
+function updateCam(dt,snap){ const p=player.obj.position; const k=camDist/17; tmpV.set(p.x+Math.sin(camAngle)*camDist,13*k+1,p.z+Math.cos(camAngle)*camDist);
+  if(snap){ camera.position.copy(tmpV); camTarget.set(p.x,1.2,p.z); } else { camera.position.lerp(tmpV,1-Math.pow(0.002,dt)); camTarget.lerp(new THREE.Vector3(p.x,1.2,p.z),1-Math.pow(0.0008,dt)); }
+  camera.lookAt(camTarget); }
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+let ptr=null;
+canvas.addEventListener('pointerdown',e=>{ if(ptr) return; ptr={id:e.pointerId,x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false}; try{ canvas.setPointerCapture(e.pointerId); }catch(_){} });
+canvas.addEventListener('pointermove',e=>{ if(!ptr||e.pointerId!==ptr.id) return; if(Math.abs(e.clientX-ptr.sx)>10||Math.abs(e.clientY-ptr.sy)>10) ptr.moved=true; if(ptr.moved&&mode==='play') camAngle-=(e.clientX-ptr.x)*0.008; ptr.x=e.clientX; ptr.y=e.clientY; });
+const endPtr=e=>{ if(!ptr||e.pointerId!==ptr.id) return; const tap=!ptr.moved; ptr=null; if(tap) onTap(e.clientX,e.clientY); };
+canvas.addEventListener('pointerup',endPtr); canvas.addEventListener('pointercancel',e=>{ if(ptr&&e.pointerId===ptr.id) ptr=null; });
+function onTap(cx,cy){
+  if(mode!=='play'||dlg.open||modalOpen) return;
+  const r=canvas.getBoundingClientRect(); ndc.set((cx-r.left)/r.width*2-1,-((cy-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObjects(npcObjs.map(n=>n.hit)); if(hits.length){ approachNPC(hits[0].object.userData.npc); return; }
+  const p=new THREE.Vector3(); if(ray.ray.intersectPlane(groundPlane,p)){ if(walkTo(p.x,p.z,null)){ tapRing.position.x=p.x; tapRing.position.z=p.z; tapRing.material.opacity=1; tapRing.scale.setScalar(1); } }
+}
+$('#camCtl').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const c=b.dataset.c; if(c==='l') camAngle+=Math.PI/4; if(c==='r') camAngle-=Math.PI/4; if(c==='in') camDist=Math.max(9,camDist-3); if(c==='out') camDist=Math.min(30,camDist+3); });
+
+/* ================= KEYBOARD & D-PAD ================= */
+const keys={f:false,b:false,l:false,r:false};
+const KEYMAP={ArrowUp:'f',KeyW:'f',ArrowDown:'b',KeyS:'b',ArrowLeft:'l',KeyA:'l',ArrowRight:'r',KeyD:'r'};
+function clearKeys(){ for(const k in keys) keys[k]=false; document.querySelectorAll('#dpad button.on').forEach(b=>b.classList.remove('on')); }
+const walkable=(x,z)=>{ const c=cellOf(x,z); return isFree(c[0],c[1]); };
+function nearestNPC(maxD){ if(!player.obj) return null; const p=player.obj.position; let best=null,bd=maxD*maxD; npcObjs.forEach(n=>{ const d=(n.pos[0]-p.x)**2+(n.pos[1]-p.z)**2; if(d<bd){ bd=d; best=n; } }); return best; }
+function talkNearest(){ const n=nearestNPC(4.5); if(n) approachNPC(n); else toast('Hier ist niemand. Geh näher an eine Person heran.'); }
+window.addEventListener('keydown',e=>{
+  const inInput=e.target&&e.target.tagName==='INPUT';
+  if(modalOpen&&inInput&&e.key==='Enter'){ const b=$('#aCheck'); if(b){ e.preventDefault(); b.click(); } return; }
+  if(inInput) return;
+  if(dlg.open){
+    if(/^(Digit|Numpad)[1-9]$/.test(e.code)){ const b=document.querySelectorAll('#dOpts .opt')[+e.code.slice(-1)-1]; if(b){ e.preventDefault(); b.click(); } return; }
+    if((e.code==='Space'||e.code==='Enter')&&dlg.typing&&dlg.finish){ e.preventDefault(); dlg.finish(); }
+    return;
+  }
+  if(mode!=='play'||modalOpen) return;
+  const k=KEYMAP[e.code];
+  if(k){ e.preventDefault(); keys[k]=true; player.path=null; player.onArrive=null; return; }
+  if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); talkNearest(); }
+  if(e.code==='KeyQ') camAngle+=Math.PI/8;
+  if(e.code==='KeyE') camAngle-=Math.PI/8;
+});
+window.addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k) keys[k]=false; });
+window.addEventListener('blur',clearKeys);
+document.querySelectorAll('#dpad button[data-k]').forEach(b=>{
+  const k=b.dataset.k;
+  const down=e=>{ e.preventDefault(); if(mode!=='play'||dlg.open||modalOpen) return; keys[k]=true; b.classList.add('on'); player.path=null; player.onArrive=null; try{ b.setPointerCapture(e.pointerId); }catch(_){} };
+  const up=()=>{ keys[k]=false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown',down); b.addEventListener('pointerup',up); b.addEventListener('pointercancel',up); b.addEventListener('lostpointercapture',up);
+});
+$('#dTalk').addEventListener('click',()=>{ if(mode==='play'&&!dlg.open&&!modalOpen) talkNearest(); });
+let nearHint=null;
+
+/* ================= UI: TOAST / DIALOG / MODAL ================= */
+let toastT=null;
+function toast(msg,ms){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),ms||2600); }
+const dlg={open:false,typing:false,timer:null,finish:null};
+function say(n,text,opts){
+  clearKeys(); const d=$('#dialog'); d.classList.remove('hidden'); dlg.open=true; document.body.classList.add('talking');
+  $('#dPortrait').textContent=n.icon; $('#dPortrait').style.background=n.color||'#ffe39a';
+  $('#dName').textContent=n.name+(n.title?' · '+n.title:'');
+  const el=$('#dText'), box=$('#dOpts'); el.textContent=''; box.innerHTML=''; clearInterval(dlg.timer);
+  let i=0; dlg.typing=true;
+  const finish=()=>{ clearInterval(dlg.timer); dlg.typing=false; el.textContent=text; showOpts(opts); };
+  dlg.finish=finish;
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce) finish(); else { const t0=performance.now(); dlg.timer=setInterval(()=>{ i=Math.floor((performance.now()-t0)/11); el.textContent=text.slice(0,i); if(i>=text.length) finish(); },30); }
+}
+function showOpts(opts){ const box=$('#dOpts'); box.innerHTML=''; (opts||[{label:'Weiter',fn:closeDialog}]).forEach(o=>{ const b=document.createElement('button'); b.className='opt'; b.innerHTML='<span>▸</span> '+o.label; b.onclick=()=>{ sfx('click'); o.fn(); }; box.appendChild(b); }); }
+$('#dText').addEventListener('click',()=>{ if(dlg.typing&&dlg.finish) dlg.finish(); });
+function closeDialog(){ $('#dialog').classList.add('hidden'); dlg.open=false; clearInterval(dlg.timer); document.body.classList.remove('talking'); }
+let modalOpen=false;
+function openModal(html){ clearKeys(); $('#modalBox').innerHTML=html; $('#modal').classList.remove('hidden'); $('#modalBox').scrollTop=0; modalOpen=true; }
+function closeModal(){ $('#modal').classList.add('hidden'); modalOpen=false; }
+
+/* ================= CONVERSATIONS ================= */
+function talkTo(n){
+  if(n.id==='guard') return talkGuardian(n);
+  const st=S.tasks[n.id];
+  if(!st){ say(n,fmt(n.greet),[
+      {label:'Was ist hier eigentlich passiert?',fn:()=>say(n,fmt(n.lore),[{label:'Kann ich dir irgendwie helfen?',fn:()=>offerTask(n)},{label:'Ich schau mich erst mal um.',fn:closeDialog}])},
+      {label:'Kann ich dir irgendwie helfen?',fn:()=>offerTask(n)},
+      {label:'Tschüss!',fn:closeDialog}]); }
+  else if(st==='active'){ say(n,fmt(pick(['Na, {name}? Hast du das Ergebnis?','Da bist du ja wieder! Und – gelöst?','Ah, {name}! Zeig mal, was du im Heft hast.'])),[
+      {label:'Ja, ich hab das Ergebnis! ✏️',fn:()=>{ closeDialog(); openAnswer(n); }},
+      {label:'Zeig mir die Aufgabe nochmal.',fn:()=>{ closeDialog(); openTask(n,'npc'); }},
+      {label:'Kannst du mir einen Tipp geben? (−15 Punkte)',fn:()=>giveHint(n)},
+      {label:'Ich rechne noch. Bis gleich!',fn:()=>say(n,fmt(n.comeBack),[{label:'Bis gleich!',fn:closeDialog}])}]); }
+  else say(n,fmt(n.doneLine),[{label:'Tschüss!',fn:closeDialog}]);
+}
+function offerTask(n){ say(n,fmt(n.intro),[{label:'Zeig her!',fn:()=>{ closeDialog(); if(!S.tasks[n.id]){ S.tasks[n.id]='active'; save(); updateMarker(n); } openTask(n,'npc'); }},{label:'Später vielleicht.',fn:closeDialog}]); }
+function giveHint(n){
+  const h=S.hints[n.id]||0;
+  if(h>=n.hints.length){ say(n,'Mehr Tipps habe ich nicht. Schau dir die bisherigen Tipps im Ergebnis-Fenster an – oder frag jemanden aus deiner Klasse!',[{label:'Okay, ich rechne weiter.',fn:closeDialog},{label:'Ich hab das Ergebnis!',fn:()=>{ closeDialog(); openAnswer(n); }}]); return; }
+  S.hints[n.id]=h+1; save(); sfx('hint');
+  say(n,'Tipp '+(h+1)+': '+n.hints[h],[{label:'Danke! Ich rechne weiter.',fn:()=>say(n,fmt(n.comeBack),[{label:'Bis gleich!',fn:closeDialog}])},{label:'Ich hab das Ergebnis!',fn:()=>{ closeDialog(); openAnswer(n); }}]);
+}
+function talkGuardian(n){
+  const k=countDone();
+  if(S.finished){ say(n,fmt('Der Bann ist gebrochen, {name}. Proportanien ist wieder in Form – dank dir! Das Südtor steht offen.'),[{label:'Urkunde ansehen 📜',fn:()=>{ closeDialog(); showCertificate(); }},{label:'Tschüss!',fn:closeDialog}]); return; }
+  if(k<11) say(n,`Huuuh … Ich bin der Spiegelgeist. Bring mir alle 11 Scherben, dann heile ich den Großen Spiegel und breche den Bann. Du hast ${k} von 11.`,[
+      {label:'Wo finde ich die anderen Scherben?',fn:()=>say(n,'Die Dorfbewohner haben sie. Im Questbuch steht, wer noch wartet und wo.',[{label:'Questbuch öffnen 📜',fn:()=>{ closeDialog(); openQuest(); }},{label:'Danke!',fn:closeDialog}])},
+      {label:'Bis später!',fn:closeDialog}]);
+  else say(n,fmt('Unglaublich … alle 11 Scherben! Halte sie hoch, {name}, und sprich die Zauberformel der Ähnlichkeit!'),[{label:'„Gleiche Winkel, gleiches Verhältnis!“ ✨',fn:startEnding}]);
+}
+
+/* ================= TASK CARDS ================= */
+function taskHead(n,kick){ return `<div class="mhead"><div class="micon" style="background:${n.color}">${n.icon}</div><div><div class="mkick">${kick}</div><h2>${n.taskTitle}</h2></div></div>`; }
+function openTask(n,from){
+  const btns=from==='npc'
+    ? `<button class="btn ghost" id="tAns">Ich hab's schon – Ergebnis eingeben</button><button class="btn big" id="tOk">✏️ Okay, ab ins Heft!</button>`
+    : `<button class="btn ghost" id="tClose">Schließen</button>${S.tasks[n.id]==='done'?'':`<button class="btn" id="tGo">🚶 Zu ${esc(n.name)} laufen</button>`}`;
+  openModal(`${taskHead(n,`Auftrag von ${esc(n.name)} · ${n.area}`)}
+    <div class="task">${n.task}</div>${n.fig?FIG[n.fig]():''}
+    ${from==='npc'?`<div class="heft"><b>📓</b><span>Löse die Aufgabe in deinem Heft. Wenn du fertig bist, sprich ${esc(n.name)} wieder an und gib dein Ergebnis ein. Im Questbuch kannst du die Aufgabe jederzeit nachlesen.</span></div>`:''}
+    ${S.tasks[n.id]==='done'?`<div class="sol" style="margin-top:12px"><b>So geht's:</b> ${n.solution}</div>`:''}
+    <div class="mbtns">${btns}</div>`);
+  if(from==='npc'){ $('#tOk').onclick=()=>{ closeModal(); say(n,fmt(n.comeBack),[{label:'Mach ich!',fn:closeDialog}]); }; $('#tAns').onclick=()=>openAnswer(n); }
+  else { $('#tClose').onclick=closeModal; const g=$('#tGo'); if(g) g.onclick=()=>{ closeModal(); approachNPC(n); }; }
+}
+function renderField(f,i){
+  let inner='';
+  if(f.t==='num') inner=`<div class="inrow"><input type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="${esc(f.label)}"><span class="unit">${f.unit||''}</span></div>`;
+  if(f.t==='multi') inner=`<div class="chips">${f.opts.map(o=>`<button type="button" class="chip" data-v="${o}">${o}</button>`).join('')}</div>`;
+  if(f.t==='single') inner=`<div class="chips col">${f.opts.map((o,k)=>`<button type="button" class="chip" data-v="${k}">${o}</button>`).join('')}</div>`;
+  if(f.t==='tf') inner=f.items.map(it=>`<div class="tfrow" data-k="${it.k}"><span>${it.k}) ${it.txt}</span><span class="tfb"><button type="button" class="chip" data-v="1">wahr</button><button type="button" class="chip" data-v="0">falsch</button></span></div>`).join('');
+  return `<div class="fld" data-t="${f.t}" data-i="${i}"><label>${f.label}</label>${inner}</div>`;
+}
+function parseNum(s){
+  s=(s||'').toLowerCase().replace(/\s+/g,'').replace(/,/g,'.');
+  if(!s) return NaN; const pct=s.includes('%');
+  s=s.replace(/(mm|cm|dm|km|m)(\^?[23²³])?/g,'').replace(/[^0-9.:\/\-]/g,'');
+  let v; if(/[:\/]/.test(s)){ const [a,b]=s.split(/[:\/]/).map(parseFloat); v=a/b; } else v=parseFloat(s);
+  if(pct) v/=100; return v;
+}
+function isEmpty(f,el){ if(f.t==='num') return !el.querySelector('input').value.trim(); if(f.t==='tf') return [...el.querySelectorAll('.tfrow')].some(r=>!r.querySelector('.chip.on')); return !el.querySelector('.chip.on'); }
+function checkField(f,el){
+  if(f.t==='num'){ const v=parseNum(el.querySelector('input').value); if(!isFinite(v)) return false; if(Math.abs(v-f.ans)<=f.tol) return true; if(f.recip&&v!==0&&Math.abs(1/v-f.ans)<=f.tol*Math.max(1,f.ans)) return true; return false; }
+  if(f.t==='multi'){ const on=[...el.querySelectorAll('.chip.on')].map(b=>b.dataset.v); return on.length===f.correct.length&&f.correct.every(c=>on.includes(c)); }
+  if(f.t==='single'){ const b=el.querySelector('.chip.on'); return !!b&&+b.dataset.v===f.correct; }
+  if(f.t==='tf') return f.items.every(it=>{ const b=el.querySelector(`.tfrow[data-k="${it.k}"] .chip.on`); return !!b&&(b.dataset.v==='1')===f.correct[it.k]; });
+  return false;
+}
+const WRONG=['Noch nicht ganz. Die rot markierten Antworten stimmen nicht – rechne im Heft nochmal nach!','Fast! Prüfe die rot markierten Felder. Hast du die Einheiten richtig umgerechnet?','Nicht aufgeben! Schau dir die roten Felder nochmal an – oder hol dir einen Tipp.'];
+function openAnswer(n){
+  const h=S.hints[n.id]||0;
+  openModal(`${taskHead(n,`Ergebnis für ${esc(n.name)}`)}
+    <details class="tdet"><summary>Aufgabe anzeigen</summary><div class="task">${n.task}</div>${n.fig?FIG[n.fig]():''}</details>
+    ${n.note?`<p class="note">${n.note}</p>`:''}
+    <div id="flds">${n.fields.map(renderField).join('')}</div>
+    <div id="hintBox">${n.hints.slice(0,h).map((t,i)=>`<div class="hint">💡 <b>Tipp ${i+1}:</b> ${t}</div>`).join('')}</div>
+    <div class="msg" id="aMsg"></div>
+    <div class="mbtns"><button class="btn ghost" id="aLater">Später</button><button class="btn ghost" id="aHint">💡 Tipp (−15)</button><button class="btn big" id="aCheck">Prüfen ✔</button></div>`);
+  const box=$('#flds');
+  box.addEventListener('click',e=>{ const c=e.target.closest('.chip'); if(!c) return; const fld=c.closest('.fld'); const t=fld.dataset.t; sfx('click');
+    if(t==='multi') c.classList.toggle('on'); else if(t==='single'){ fld.querySelectorAll('.chip').forEach(b=>b.classList.remove('on')); c.classList.add('on'); }
+    else if(t==='tf'){ c.parentElement.querySelectorAll('.chip').forEach(b=>b.classList.remove('on')); c.classList.add('on'); }
+    fld.classList.remove('ok','bad'); });
+  box.addEventListener('input',e=>{ const fld=e.target.closest('.fld'); if(fld) fld.classList.remove('ok','bad'); });
+  const msg=(t,c)=>{ const m=$('#aMsg'); m.textContent=t; m.className='msg '+(c||''); };
+  $('#aLater').onclick=()=>{ closeModal(); say(n,fmt(n.comeBack),[{label:'Bis gleich!',fn:closeDialog}]); };
+  $('#aHint').onclick=()=>{ const k=S.hints[n.id]||0; if(k>=n.hints.length){ msg('Alle Tipps sind schon aufgedeckt.','warn'); return; } S.hints[n.id]=k+1; save(); sfx('hint');
+    $('#hintBox').insertAdjacentHTML('beforeend',`<div class="hint">💡 <b>Tipp ${k+1}:</b> ${n.hints[k]}</div>`); msg(''); };
+  $('#aCheck').onclick=()=>{
+    const els=[...box.querySelectorAll('.fld')];
+    if(n.fields.some((f,i)=>isEmpty(f,els[i]))){ msg('Bitte beantworte erst alle Felder.','warn'); return; }
+    const res=n.fields.map((f,i)=>checkField(f,els[i]));
+    els.forEach((el,i)=>{ el.classList.toggle('ok',res[i]); el.classList.toggle('bad',!res[i]); });
+    if(res.every(Boolean)) solved(n);
+    else { S.wrong[n.id]=(S.wrong[n.id]||0)+1; save(); sfx('bad'); const mb=$('#modalBox'); mb.classList.remove('shake'); void mb.offsetWidth; mb.classList.add('shake'); msg(pick(WRONG),'bad'); }
+  };
+}
+function solved(n){
+  S.tasks[n.id]='done'; S.points[n.id]=calcPts(n.id); save();
+  closeModal(); updateMarker(n); updateMarker(GUARD); refreshMirror(); updateHUD(); sfx('ok');
+  say(n,fmt(n.thanks),[{label:'Danke! Scherbe einstecken 💎',fn:()=>{ closeDialog(); showReward(n); }}]);
+}
+function showReward(n){
+  const k=countDone(), p=S.points[n.id];
+  openModal(`<div class="reward"><div class="shardbig">${SHARD_SVG}</div><h2>Spiegelscherbe ${k} von 11!</h2><div class="plus">+${p} Punkte</div>
+    <div class="breakdown">${S.hints[n.id]||0} Tipp(s), ${S.wrong[n.id]||0} Fehlversuch(e)</div>
+    <div class="sol"><b>So geht's:</b> ${n.solution}</div><div class="mbtns" style="justify-content:center"><button class="btn big" id="rOk">Weiter</button></div></div>`);
+  burst(90); sfx('pop');
+  $('#rOk').onclick=()=>{ closeModal(); if(k===11) toast('Alle 11 Scherben! Bring sie zum Spiegelgeist am Turm im Norden 🏰',6000); else toast(`Noch ${11-k} Scherben. Schau ins Questbuch, wer noch wartet.`); };
+}
+
+/* ================= QUEST BOOK / HELP ================= */
+function openQuest(){
+  const rows=NPCS.map(n=>{ const st=S.tasks[n.id];
+    const info=st==='done'?`✅ Gelöst · +${S.points[n.id]} Punkte`:st==='active'?`📝 ${n.taskTitle} – Ergebnis noch offen`:'❔ Noch nicht angesprochen';
+    return `<div class="qrow ${st||'new'}"><div class="qi">${n.icon}</div><div class="qt"><b>${esc(n.name)}</b> <span class="muted">${n.title}</span><br><small>${info}<br>📍 ${n.area}</small></div>
+      <div class="qb">${st?`<button class="btn sm ghost" data-read="${n.id}">Lesen</button>`:''}${st==='done'?'':`<button class="btn sm" data-go="${n.id}">🚶 Hin</button>`}</div></div>`; }).join('');
+  openModal(`<div class="mhead"><div class="micon" style="background:#efe6ff">📜</div><div><div class="mkick">${countDone()} von 11 Scherben gefunden</div><h2>Questbuch</h2></div></div>
+    ${rows}
+    <div class="qrow"><div class="qi">👻</div><div class="qt"><b>Spiegelgeist</b> <span class="muted">Hüter des Spiegels</span><br><small>Bring alle Scherben zum Spiegelturm.<br>📍 Spiegelturm (Norden)</small></div><div class="qb"><button class="btn sm" data-go="guard">🚶 Hin</button></div></div>
+    <div class="mbtns">${S.finished?'<button class="btn magic" id="qCert">📜 Urkunde</button>':''}<button class="btn" id="qClose">Schließen</button></div>`);
+  $('#qClose').onclick=closeModal; if($('#qCert')) $('#qCert').onclick=showCertificate;
+  $('#modalBox').querySelectorAll('[data-read]').forEach(b=>b.onclick=()=>openTask(NPC_BY[b.dataset.read],'book'));
+  $('#modalBox').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ closeModal(); approachNPC(b.dataset.go==='guard'?GUARD:NPC_BY[b.dataset.go]); });
+}
+function openHelp(){
+  openModal(`<div class="mhead"><div class="micon" style="background:#efe6ff">❔</div><div><div class="mkick">So spielst du</div><h2>Hilfe</h2></div></div>
+    <div class="story-card" style="padding:0;font-size:17px"><ul>
+    <li>👆 Tippe auf den Boden, um dorthin zu laufen – oder nutze die Pfeiltasten (bzw. W A S D) oder das Steuerkreuz unten links.</li><li>💬 Tippe auf eine Person, um mit ihr zu sprechen. Mit der Tastatur: in die Nähe gehen und Leertaste drücken. Antworten im Gespräch wählst du auch mit den Zahlentasten 1–4.</li>
+    <li>✏️ Rechne die Aufgaben in deinem Heft. Danach sprichst du die Person wieder an und gibst dein Ergebnis ein.</li>
+    <li>💡 Tipps helfen weiter, kosten aber 15 Punkte. Ein Fehlversuch kostet 10 Punkte. Jede Aufgabe bringt mindestens 40 Punkte.</li>
+    <li>☝️ Mit einem Finger über den Bildschirm wischen dreht die Kamera (Tastatur: Q und E). ＋ und － zoomen.</li>
+    <li>⏱ Die Zeit läuft mit, aber es gibt kein Limit. Lieber richtig als schnell!</li>
+    <li>💾 Dein Spielstand wird auf diesem Gerät gespeichert.</li></ul></div>
+    <div class="mbtns"><button class="btn ghost" id="hSound">${soundOn?'🔊 Ton an':'🔇 Ton aus'}</button><button class="btn ghost" id="hReset">Neues Spiel</button><button class="btn" id="hClose">Weiterspielen</button></div>`);
+  $('#hClose').onclick=closeModal;
+  $('#hSound').onclick=e=>{ soundOn=!soundOn; e.target.textContent=soundOn?'🔊 Ton an':'🔇 Ton aus'; };
+  let armed=false; $('#hReset').onclick=e=>{ if(!armed){ armed=true; e.target.textContent='Wirklich alles löschen?'; return; } clearSave(); location.reload(); };
+}
+$('#bQuest').onclick=()=>{ if(mode==='play'&&!dlg.open){ sfx('click'); openQuest(); } };
+$('#bHelp').onclick=()=>{ if(mode==='play'&&!dlg.open){ sfx('click'); openHelp(); } };
+
+/* ================= ENDING & CERTIFICATE ================= */
+let endT=0, endFlags={};
+function startEnding(){ closeDialog(); mode='ending'; endT=0; endFlags={}; S.finished=true; S.finalTime=S.elapsed; save(); sfx('win'); updateHUD(); }
+function updateEnding(dt){
+  endT+=dt; tmpV.set(0,10,-17); camera.position.lerp(tmpV,1-Math.pow(0.05,dt)); camTarget.lerp(new THREE.Vector3(0,9,-36),1-Math.pow(0.02,dt)); camera.lookAt(camTarget);
+  mirrorWedges.forEach((w,i)=>w.material.color.setHSL(0.52+0.08*Math.sin(endT*3+i),0.9,0.75+0.15*Math.sin(endT*5+i)));
+  mirrorGlow.material.opacity=Math.min(1,endT*0.6); mirrorGlow.scale.setScalar(8+Math.min(endT,3)*5);
+  if(endT>1.2&&!endFlags.b){ endFlags.b=1; burst(220); }
+  if(endT>2.4&&!endFlags.c){ endFlags.c=1; burst(160); }
+  barrier.material.opacity=Math.max(0,0.45-endT*0.15);
+  if(endT>4.5&&!endFlags.d){ endFlags.d=1; barrier.visible=false; refreshAllMarkers(); mode='play'; mirrorGlow.material.opacity=0.35; showCertificate(); }
+}
+function showCertificate(){
+  const pts=totalPts(), stars=pts>=950?3:pts>=750?2:1;
+  const rows=NPCS.map(n=>`<tr><td>${n.icon} ${n.taskTitle}</td><td>${S.points[n.id]||0}</td></tr>`).join('');
+  openModal(`<div class="cert"><div class="seal">${CHARS[S.char].em}</div><div class="mkick" style="margin-top:6px">Urkunde des Dorfes Proportanien</div>
+    <h2 class="certname">${esc(S.name)}</h2>
+    <p>hat als mutiges Fabelwesen (${CHARS[S.char].label}) alle 11 Spiegelscherben gefunden und Proportanien vom Bann des Zauberers Verzerrus befreit.</p>
+    <div class="stars">${'★'.repeat(stars)}<span>${'★'.repeat(3-stars)}</span></div>
+    <div class="stats"><div><b>${fmtTime(S.finalTime||S.elapsed)}</b><small>Zeit</small></div><div><b>${pts}/1100</b><small>Punkte</small></div><div><b>${sumObj(S.hints)}</b><small>Tipps</small></div><div><b>${sumObj(S.wrong)}</b><small>Fehlversuche</small></div></div>
+    <table>${rows}</table>
+    <p class="small">📸 Mach einen Screenshot und zeig ihn deiner Lehrkraft.</p>
+    <div class="mbtns" style="justify-content:center"><button class="btn ghost" id="cNew">Neues Spiel</button><button class="btn" id="cBack">Weiter erkunden</button></div></div>`);
+  burst(60);
+  $('#cBack').onclick=closeModal;
+  let armed=false; $('#cNew').onclick=e=>{ if(!armed){ armed=true; e.target.textContent='Wirklich neu starten?'; return; } clearSave(); location.reload(); };
+}
+
+/* ================= HUD & MINIMAP ================= */
+function updateHUD(){ if(!S) return; $('#hAv').textContent=CHARS[S.char].em; $('#hName').textContent=S.name; $('#hTime').textContent=fmtTime(S.finished?S.finalTime:S.elapsed); $('#hShards').innerHTML=SHARD_SVG+' '+countDone()+'/11'; $('#hPts').textContent=totalPts(); }
+const mm=$('#minimap'), mx=mm.getContext('2d'); const MS=256/96, MC=-3;
+const toMap=(x,z)=>[(x)*MS+128,(z-MC)*MS+128];
+let mmBg=null;
+function drawMinimapBg(){ mmBg=document.createElement('canvas'); mmBg.width=mmBg.height=256; const c=mmBg.getContext('2d');
+  c.fillStyle='#a8d982'; c.fillRect(0,0,256,256); c.fillStyle='#ead9b0';
+  const rect=(x1,z1,x2,z2)=>{ const a=toMap(x1,z1), b=toMap(x2,z2); c.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]); };
+  rect(-3.5,-38,3.5,34); rect(-46,-3.5,46,3.5); const p=toMap(0,0); c.beginPath(); c.arc(p[0],p[1],13.5*MS,0,Math.PI*2); c.fill();
+  const pd=toMap(-13,22); c.fillStyle='#6cc6ee'; c.beginPath(); c.arc(pd[0],pd[1],5*MS,0,Math.PI*2); c.fill();
+  c.fillStyle='#b9876a'; obstacles.forEach(o=>{ if((o.x2-o.x1)>3&&(o.z2-o.z1)>3&&!(Math.abs(o.x1+13)<1&&Math.abs(o.z1-17)<1)) rect(o.x1,o.z1,o.x2,o.z2); });
+  const t=toMap(0,-40); c.fillStyle='#6b4bb8'; c.beginPath(); c.arc(t[0],t[1],4.6*MS,0,Math.PI*2); c.fill(); }
+function drawMinimap(){ if(!mmBg) drawMinimapBg(); mx.drawImage(mmBg,0,0);
+  npcObjs.forEach(n=>{ const st=npcStatus(n); const [x,y]=toMap(n.pos[0],n.pos[1]); mx.fillStyle=st==='done'?'#3fae5a':st==='active'?'#4a8fe0':st==='goal'?'#7b5ad6':'#f2b631'; mx.strokeStyle='#fff'; mx.lineWidth=3; mx.beginPath(); mx.arc(x,y,8,0,Math.PI*2); mx.fill(); mx.stroke(); });
+  const p=player.obj.position, [x,y]=toMap(p.x,p.z), a=player.obj.rotation.y;
+  mx.save(); mx.translate(x,y); mx.rotate(-a+Math.PI); mx.fillStyle='#ff4f6d'; mx.strokeStyle='#fff'; mx.lineWidth=3; mx.beginPath(); mx.moveTo(0,-13); mx.lineTo(9,9); mx.lineTo(0,4); mx.lineTo(-9,9); mx.closePath(); mx.fill(); mx.stroke(); mx.restore(); }
+
+/* ================= CONFETTI ================= */
+const fx=$('#fx'), fctx=fx.getContext('2d'); let confetti=[];
+function burst(n){ const cols=['#ffd34d','#ff7aa8','#7cc8ff','#8ee59b','#c49bff','#ffffff']; for(let i=0;i<n;i++) confetti.push({x:innerWidth/2+rnd(-140,140),y:innerHeight*0.42,vx:rnd(-9,9),vy:rnd(-15,-4),s:rnd(5,10),c:pick(cols),a:rnd(0,6),va:rnd(-0.3,0.3),life:0}); }
+function drawConfetti(dt){ if(!confetti.length){ return; } fctx.clearRect(0,0,fx.width,fx.height); const dpr=fx.width/innerWidth;
+  confetti.forEach(p=>{ p.vy+=22*dt; p.x+=p.vx*dt*30; p.y+=p.vy*dt*30; p.a+=p.va; p.life+=dt; fctx.save(); fctx.translate(p.x*dpr,p.y*dpr); fctx.rotate(p.a); fctx.fillStyle=p.c; fctx.fillRect(-p.s*dpr/2,-p.s*dpr/4,p.s*dpr,p.s*dpr/2); fctx.restore(); });
+  confetti=confetti.filter(p=>p.y<innerHeight+30&&p.life<5); if(!confetti.length) fctx.clearRect(0,0,fx.width,fx.height); }
+
+/* ================= PREVIEW SCENE ================= */
+const pScene=new THREE.Scene(), pCam=new THREE.PerspectiveCamera(40,1,0.1,50);
+pScene.add(new THREE.HemisphereLight('#ffffff','#b9a6ff',0.6)); const pl=new THREE.DirectionalLight('#fff4e0',0.6); pl.position.set(3,6,5); pScene.add(pl);
+const ped=new THREE.Group(); pScene.add(ped); mesh(CYL(1.15,1.3,0.35,28),'#f6e7c6',0,-0.18,0,ped); mesh(new THREE.TorusGeometry(1.2,0.06,8,40),'#f2c14e',0,0,0,ped).rotation.x=Math.PI/2;
+const previews={dragon:makeDragon(),unicorn:makeUnicorn(),griffin:makeGriffin()}; Object.values(previews).forEach(p=>{ p.visible=false; ped.add(p); });
+let selChar='dragon', hopT=0;
+pCam.position.set(0,2.2,6.6); pCam.lookAt(0,0.9,0);
+function setPreviewOffset(){ const w=innerWidth,h=innerHeight; pCam.aspect=w/h; if(w>h) pCam.setViewOffset(w,h,-w*0.22,0,w,h); else pCam.setViewOffset(w,h,0,-h*0.26,w,h); pCam.updateProjectionMatrix(); }
+
+/* ================= SCREENS ================= */
+let mode='title';
+function showTitle(){
+  mode='title'; const sv=loadSave();
+  $('#screen').innerHTML=`<div class="center-wrap"><div class="title-card parchment">
+    <div class="kick">Ein Mathe-Abenteuer zur Ähnlichkeit</div><h1>Die Scherben von Proportanien</h1>
+    <p class="tag">Ein verzaubertes Dorf, ein zerbrochener Spiegel und elf Scherben. Wer sie findet, bricht den Bann – aber nur mit Mathe.</p>
+    <div class="btns">${sv&&sv.name?`<button class="btn big" id="bCont">Weiterspielen als ${esc(sv.name)}</button><button class="btn ghost" id="bNew">Neues Spiel</button>`:`<button class="btn big" id="bNew">Spiel starten</button>`}</div>
+    <p class="small">📓 Halte dein Heft und einen Stift bereit!</p></div></div>`;
+  let armed=false;
+  $('#bNew').onclick=e=>{ sfx('click'); if(sv&&sv.name&&!armed){ armed=true; e.target.textContent='Alten Spielstand löschen?'; return; } clearSave(); showSetup(); };
+  if($('#bCont')) $('#bCont').onclick=()=>{ sfx('click'); S=sv; S.hints=S.hints||{}; S.wrong=S.wrong||{}; S.points=S.points||{}; S.tasks=S.tasks||{}; buildPlayer(S.char); startPlay(true); };
+}
+function showSetup(){
+  mode='select'; setPreviewOffset(); selectChar(selChar);
+  $('#screen').innerHTML=`<div class="setup"><div class="panel parchment">
+    <h2>Wer bist du?</h2>
+    <label class="namefield">Dein Name<input id="inName" maxlength="24" placeholder="Vor- und Nachname" autocomplete="off" autocorrect="off"></label>
+    <h3>Wähle dein Fabelwesen</h3>
+    <div class="picks">${Object.entries(CHARS).map(([k,c])=>`<button class="pick ${k===selChar?'on':''}" data-c="${k}"><span class="em">${c.em}</span><b>${c.label}</b><small>${c.desc}</small></button>`).join('')}</div>
+    <p class="err" id="sErr"></p>
+    <button class="btn big" id="bGo" style="width:100%;margin-top:4px">Abenteuer starten</button></div></div>`;
+  $('#screen').querySelectorAll('.pick').forEach(b=>b.onclick=()=>{ sfx('pop'); selectChar(b.dataset.c); $('#screen').querySelectorAll('.pick').forEach(x=>x.classList.toggle('on',x===b)); });
+  $('#bGo').onclick=()=>{ const name=$('#inName').value.trim(); if(name.length<2){ $('#sErr').textContent='Bitte gib deinen Namen ein (mindestens 2 Zeichen).'; $('#inName').focus(); return; }
+    sfx('click'); $('#inName').blur(); S=newState(name,selChar); save(); buildPlayer(selChar); showStory(0); };
+}
+function selectChar(c){ selChar=c; Object.entries(previews).forEach(([k,p])=>p.visible=k===c); hopT=0; }
+const STORY=[
+  ()=>'Es war einmal ein Dorf namens <b>Proportanien</b>. Dort passte alles perfekt zusammen: die Türen zu den Häusern, die Hüte zu den Köpfen und die Pizzen zu den Preisen.',
+  ()=>'Doch eines Tages schaute der eitle Zauberer <b>Verzerrus</b> in den Großen Zauberspiegel – und fand sich zu klein. Wutentbrannt zerschlug er ihn in <b>11 Scherben</b>.',
+  ()=>`Seitdem liegt ein Bann über dem Dorf: Alles ist ein bisschen verzerrt, und niemand kommt mehr hinaus. Auch du nicht, ${esc(S.name)}. Du bist nämlich gerade als ${CHARS[S.char].art} durchs Südtor spaziert … und es hat sich hinter dir geschlossen. 😬`,
+  ()=>'Die Dorfbewohner haben die Scherben gefunden. Sie geben sie dir aber nur, wenn du ihre Probleme löst – und die haben alle mit <b>Ähnlichkeit</b> zu tun. Bring alle Scherben zum <b>Spiegelturm im Norden</b>!',
+  ()=>'<b>So spielst du:</b><ul><li>👆 Tippe auf den Boden, um zu laufen – oder nutze die Pfeiltasten bzw. das Steuerkreuz.</li><li>💬 Tippe auf Personen, um mit ihnen zu sprechen (Tastatur: Leertaste).</li><li>✏️ Rechne im Heft und gib das Ergebnis danach bei der Person ein.</li><li>💡 Tipps helfen, kosten aber Punkte.</li><li>📜 Im Questbuch stehen alle Aufträge.</li><li>⏱ Die Zeit läuft mit, aber ohne Limit. Lieber richtig als schnell!</li></ul>'
+];
+function showStory(i){
+  mode='story';
+  $('#screen').innerHTML=`<div class="center-wrap"><div class="story-card parchment"><div class="pg">${i+1} / ${STORY.length}</div><div>${STORY[i]()}</div>
+    <div class="mbtns">${i<STORY.length-1?'<button class="btn ghost" id="sSkip">Überspringen</button>':'<span></span>'}<button class="btn big" id="sNext">${i<STORY.length-1?'Weiter':'Los geht\'s!'}</button></div></div></div>`;
+  $('#sNext').onclick=()=>{ sfx('click'); if(i<STORY.length-1) showStory(i+1); else startPlay(false); };
+  if($('#sSkip')) $('#sSkip').onclick=()=>{ sfx('click'); startPlay(false); };
+}
+function startPlay(resumed){
+  mode='play'; $('#screen').innerHTML='';
+  ['#hud','#minimap','#camCtl','#dpad'].forEach(s=>$(s).classList.remove('hidden'));
+  refreshAllMarkers(); refreshMirror(); if(S.finished){ barrier.visible=false; mirrorGlow.material.opacity=0.35; }
+  camAngle=0; updateCam(0,true); updateHUD();
+  setTimeout(()=>toast(resumed?`Willkommen zurück, ${S.name}! ${countDone()} von 11 Scherben hast du schon.`:'Tipp: Auf dem Marktplatz warten schon die ersten Dorfbewohner!',4000),400);
+}
+
+/* ================= MAIN LOOP ================= */
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); setPreviewOffset();
+  const dpr=Math.min(window.devicePixelRatio||1,2); fx.width=w*dpr; fx.height=h*dpr; }
+window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&S) save(); });
+let T=0, last=performance.now(), hudAcc=0, saveAcc=0, mmAcc=0, gateWarn=0;
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now; T+=dt;
+  if(mode==='select'){
+    ped.rotation.y+=dt*0.5; hopT+=dt; const p=previews[selChar]; p.position.y=hopT<0.5?Math.sin(hopT/0.5*Math.PI)*0.4:0; animateCreature(p,T,false);
+    renderer.render(pScene,pCam);
+  } else {
+    if(mode==='title'||mode==='story'){ const a=T*0.06; camera.position.set(Math.sin(a)*52,28,Math.cos(a)*52-4); camera.lookAt(0,2,-6); }
+    if(player.obj&&(mode==='play'||mode==='ending')){ updatePlayer(dt,T); if(mode==='play') updateCam(dt,false); }
+    if(mode==='ending') updateEnding(dt);
+    npcObjs.forEach(n=>{ const o=n.obj; if(n.ghost) o.position.y=0.3+Math.sin(T*1.6)*0.25; else if(!n.owl) o.position.y=Math.abs(Math.sin(T*1.5+n.ph))*0.04;
+      let want=n.baseRot; if(player.obj&&mode!=='title'){ const dx=player.obj.position.x-n.pos[0], dz=player.obj.position.z-n.pos[1]; if(dx*dx+dz*dz<64) want=Math.atan2(dx,dz); }
+      o.rotation.y=lerpAngle(o.rotation.y,want,1-Math.pow(0.05,dt)); n.label.position.y=(n.owl?3.4:n.ghost?3.6:2.95)+Math.sin(T*2.4+n.ph)*0.08; });
+    fountainStar.rotation.y+=dt*1.2; fountainStar.position.y=3+Math.sin(T*2)*0.15;
+    if(barrier.visible) barrier.material.opacity=mode==='ending'?barrier.material.opacity:0.32+Math.sin(T*3)*0.12;
+    boat.position.y=0.1+Math.sin(T*1.5)*0.06; boat.rotation.z=Math.sin(T*1.1)*0.05;
+    bubbles.forEach(b=>{ b.position.y=0.85+((T*0.5+b.userData.ph)%1)*0.5; b.scale.setScalar(1-((T*0.5+b.userData.ph)%1)*0.6); });
+    clouds.forEach(c=>{ c.position.x+=c.userData.v*dt; if(c.position.x>140) c.position.x=-140; });
+    if(tapRing.material.opacity>0){ tapRing.material.opacity=Math.max(0,tapRing.material.opacity-dt*1.6); tapRing.scale.setScalar(1+(1-tapRing.material.opacity)*0.6); }
+    if(mode!=='ending'&&S&&!S.finished) mirrorWedges.forEach((w,i)=>{ if(S.tasks[NPCS[i].id]==='done') w.material.color.setHSL(0.53,0.85,0.82+0.08*Math.sin(T*2+i)); });
+    sky.position.copy(camera.position);
+    renderer.render(scene,camera);
+  }
+  if(mode==='play'&&S){
+    if(!S.finished&&!document.hidden) S.elapsed+=dt;
+    hudAcc+=dt; if(hudAcc>0.5){ hudAcc=0; updateHUD(); }
+    saveAcc+=dt; if(saveAcc>4){ saveAcc=0; save(); }
+    mmAcc+=dt; if(mmAcc>0.1){ mmAcc=0; drawMinimap(); }
+    if(!S.finished&&player.obj.position.z>29.5&&T-gateWarn>8){ gateWarn=T; toast('Das Tor ist verzaubert. Erst wenn der Spiegel heil ist, kommst du hier raus!'); }
+  }
+  drawConfetti(dt);
+  requestAnimationFrame(loop);
+}
+
+/* ================= INIT ================= */
+buildWorld(); spawnNPCs(); buildGrid(); resize(); showTitle();
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ refreshAllMarkers(); signs.forEach(s=>s.userData.redraw()); });
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
